@@ -11,8 +11,8 @@ The purpose of this Project / demo is to show how you can use combination of ARM
 
 # I am nervous. Can I see a Video?
 Sure. I can handle your nervousness well. You need to be slight techy and have Azure Knowledge to understand this. You can see two Videos here:
-1. [Create Full Environment](help/01-video-recordings/01-create-full.mp4)
-2. [Destroy Full Environment](help/01-video-recordings/02-destroy-full.mp4)
+1. [Create Full Environment](https://github.com/sanket-t-shah/motifworks-breeze-deployer-synapse/assets/7502469/b0b2f7fb-8c1e-4bbe-aed0-c9e75a1fc876)
+2. [Destroy Full Environment](https://github.com/sanket-t-shah/motifworks-breeze-deployer-synapse/assets/7502469/d88b128e-2bdd-478e-b715-5cf7a8df4535)
 
 # I want to run it now!!!
 Wow. Welcome to the world of wonders. Once you've the toolchain installed, you can jump into `src` folder and run `deployer.ps1`.

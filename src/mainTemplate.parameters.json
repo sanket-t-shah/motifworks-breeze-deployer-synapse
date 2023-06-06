@@ -1,0 +1,36 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "eastus2"
+        },
+        "breezeTagValues": {
+            "value": {"Generator": "Motifworks BREEZE Data Framework", "Project": "BREEZE"}
+        },
+        "breezeSynapseStorageAccountName": {
+            "value": "stmwbreezedev"
+        },
+        "breezeSynapseWorkspaceName": {
+            "value": "synw-breeze-dev"
+        },
+        "breezeSynapseSqlPoolDedicatedSku": {
+            "value": "DW100c"
+        },
+        "breezeSynapseAdminUsername": {
+            "value": "breezeadmin"
+        },
+        "breezeSynapseAdminPassword": {
+            "value": "Smoothie@2023"
+        },
+        "breezeSynapseAdministratorUserGuid": {
+            "value": "c1ebf919-77fd-4f2b-8ff6-490945f3eed5"
+        },
+        "_artifactsLocation": {
+            "value": "https://stmwbreezesourceassets.blob.core.windows.net"
+        },
+        "_artifactsLocationSasToken": {
+            "value": ""
+        }
+    }
+}

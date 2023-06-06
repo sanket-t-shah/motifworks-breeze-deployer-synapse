@@ -1,0 +1,158 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "All Resources - Location."
+      },
+      "minLength": 2
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+      },
+      "defaultValue": "[deployment().properties.templateLink.uri]"
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated."
+      },
+      "defaultValue": ""
+    },
+    "breezeTagValues": {
+      "type": "object",
+      "metadata": {
+        "description": "JSON Object for Tags you wish to apply on applicable resources."
+      }
+    },
+    "breezeSynapseStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage Account Name to be used as Data Lake with Synapse."
+      }
+    },
+    "breezeSynapseWorkspaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Synapse - Workspace Name."
+      }
+    },
+    "breezeSynapseSqlPoolDedicatedSku": {
+      "type": "string",
+      "defaultValue": "DW100c",
+      "metadata": {
+        "description": "Synapse - Dedicated Pool SKU."
+      }
+    },
+    "breezeSynapseAdminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Synapse - BREEZE Framework Username."
+      }
+    },
+    "breezeSynapseAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Synapse - BREEZE Framework Password."
+      }
+    },
+    "breezeSynapseAdministratorUserGuid": {
+      "type": "string",
+      "metadata": {
+        "description": "Synapse - Azure AD Linked User GUID (probably your own GUID) to be assigned as Synapse Administrator."
+      }
+    }
+  },
+  "variables": {
+    "folder_name_nested_templates": "nested-templates/",
+    "template_url_storage_account": "[if(equals(parameters('_artifactsLocation'), ''),concat(variables('folder_name_nested_templates'), 'storage-account.json'), uri(parameters('_artifactsLocation'), concat(variables('folder_name_nested_templates'), 'storage-account.json', parameters('_artifactsLocationSasToken'))))]",
+    "template_url_synapse": "[if(equals(parameters('_artifactsLocation'), ''),concat(variables('folder_name_nested_templates'), 'storage-account.json'), uri(parameters('_artifactsLocation'), concat(variables('folder_name_nested_templates'), 'synapse.json', parameters('_artifactsLocationSasToken'))))]"
+  },
+  "resources": [
+    {
+      "name": "pid-1525acdc-60b8-5947-8b23-c1eef9881631",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+
+          ]
+        }
+      }
+    },
+    {
+      "name": "storage_account",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('template_url_storage_account')]"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "breezeTagValues": {
+            "value": "[parameters('breezeTagValues')]"
+          },
+          "breezeSynapseStorageAccountName": {
+            "value": "[parameters('breezeSynapseStorageAccountName')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "synapse",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'storage_account')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('template_url_synapse')]"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "breezeResourceGroupName": {
+            "value": "[resourceGroup().name]"
+          },
+          "breezeTagValues": {
+            "value": "[parameters('breezeTagValues')]"
+          },
+          "breezeSynapseWorkspaceName": {
+            "value": "[parameters('breezeSynapseWorkspaceName')]"
+          },
+          "breezeSynapseSqlPoolDedicatedSku": {
+            "value": "[parameters('breezeSynapseSqlPoolDedicatedSku')]"
+          },
+          "breezeSynapseAdminUsername": {
+            "value": "[parameters('breezeSynapseAdminUsername')]"
+          },
+          "breezeSynapseAdminPassword": {
+            "value": "[parameters('breezeSynapseAdminPassword')]"
+          },
+          "breezeSynapseStorageAccountName": {
+            "value": "[parameters('breezeSynapseStorageAccountName')]"
+          },
+          "breezeSynapseAdministratorUserGuid": {
+            "value": "[parameters('breezeSynapseAdministratorUserGuid')]"
+          }
+        }
+      }
+    }
+  ]
+}

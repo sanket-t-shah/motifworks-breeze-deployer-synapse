@@ -1,0 +1,611 @@
+{
+    "name": "p20_AdlsDataCuration",
+    "properties": {
+        "description": "This Pipeline aims to load all data for selected tables already loaded in ADLS to Staging tables in Data Warehouse.",
+        "activities": [
+            {
+                "name": "Get Table List For Curation",
+                "description": "Lookup activity to get all the rows from ADFTableList for the given Source System, SourceDB and TableList.",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Set ADLS Container",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "Set Batch ID",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[breeze].[usp_Get_ADFTableList]",
+                        "storedProcedureParameters": {
+                            "ProcessStep": {
+                                "type": "String",
+                                "value": "adls2stage"
+                            },
+                            "RunType": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.RunType",
+                                    "type": "Expression"
+                                }
+                            },
+                            "SourceDB": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.SourceDBName",
+                                    "type": "Expression"
+                                }
+                            },
+                            "SourceSystem": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.SourceSystem",
+                                    "type": "Expression"
+                                }
+                            },
+                            "SourceTables": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.TableList",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "ds_breeze",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "For Each Table Row",
+                "description": "This for each activity will iterate for each table row.",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Get Table List For Curation",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Get Table List For Curation').output.value",
+                        "type": "Expression"
+                    },
+                    "batchCount": 25,
+                    "activities": [
+                        {
+                            "name": "Log Table Curation Start",
+                            "type": "Lookup",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureSqlSource",
+                                    "sqlReaderStoredProcedureName": "[breeze].[usp_Process_OnBegin]",
+                                    "storedProcedureParameters": {
+                                        "BatchName": {
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@{pipeline().Pipeline}",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "Description": {
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@{concat('Stage Load-', item().SrcObjectName)}",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "DWBatchId": {
+                                            "type": "Int32",
+                                            "value": {
+                                                "value": "@variables('BatchId')",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "operator": {
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@{pipeline().DataFactory}",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "ProcessDate": {
+                                            "type": "DateTime",
+                                            "value": {
+                                                "value": "@utcnow()",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "StartTime": {
+                                            "type": "DateTime",
+                                            "value": {
+                                                "value": "@utcnow()",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    },
+                                    "queryTimeout": "02:00:00",
+                                    "partitionOption": "None"
+                                },
+                                "dataset": {
+                                    "referenceName": "ds_breeze",
+                                    "type": "DatasetReference"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Update Config Table On Curation Success",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "ADLS Data Curation",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_AdfTableList_UpdateRunStatus]",
+                                "storedProcedureParameters": {
+                                    "StagingLoadRunDate": {
+                                        "value": {
+                                            "value": "@utcnow()",
+                                            "type": "Expression"
+                                        },
+                                        "type": "DateTime"
+                                    },
+                                    "StagingLoadStatus": {
+                                        "value": "Passed",
+                                        "type": "String"
+                                    },
+                                    "SourceDBName": {
+                                        "value": {
+                                            "value": "@item().SrcDbOrContainer",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "SourceTableName": {
+                                        "value": {
+                                            "value": "@item().SrcObjectName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "AdlsLoadStatus": {
+                                        "value": null,
+                                        "type": "String"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@item().SystemName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "AdlsLoadRunDate": {
+                                        "value": null,
+                                        "type": "Datetime"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Audit Data Curation Success",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Update Config Table On Curation Success",
+                                    "dependencyConditions": [
+                                        "Completed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_Process_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "ErrorMessage": {
+                                        "value": null,
+                                        "type": "String"
+                                    },
+                                    "ETLBatchID": {
+                                        "value": {
+                                            "value": "@activity('Log Table Curation Start').output.firstrow.ETLBatchID",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "InsertCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "SourceCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "StageCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "status": {
+                                        "value": {
+                                            "value": "1",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "TargetCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "UnchangedCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "UpdateCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Update Config Table On Curation Failed",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "ADLS Data Curation",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_AdfTableList_UpdateRunStatus]",
+                                "storedProcedureParameters": {
+                                    "StagingLoadRunDate": {
+                                        "value": {
+                                            "value": "@utcnow()",
+                                            "type": "Expression"
+                                        },
+                                        "type": "DateTime"
+                                    },
+                                    "StagingLoadStatus": {
+                                        "value": "Failed",
+                                        "type": "String"
+                                    },
+                                    "SourceDBName": {
+                                        "value": {
+                                            "value": "@item().SourceDBName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "SourceTableName": {
+                                        "value": {
+                                            "value": "@item().SrcObjectName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "AdlsLoadStatus": {
+                                        "value": null,
+                                        "type": "String"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@item().SystemName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "AdlsLoadRunDate": {
+                                        "value": null,
+                                        "type": "Datetime"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Audit Data Curation Failed",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Update Config Table On Curation Failed",
+                                    "dependencyConditions": [
+                                        "Completed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_Process_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "ErrorMessage": {
+                                        "value": {
+                                            "value": "@activity('ADLS Data Curation').output.errors",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "ETLBatchID": {
+                                        "value": {
+                                            "value": "@activity('Log Table Curation Start').output.firstrow.ETLBatchID",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "InsertCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "SourceCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "StageCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "status": {
+                                        "value": "2",
+                                        "type": "Int32"
+                                    },
+                                    "TargetCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "UnchangedCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "UpdateCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "ADLS Data Curation",
+                            "description": "Calling Synapse Notebook for curation logic.",
+                            "type": "SynapseNotebook",
+                            "dependsOn": [
+                                {
+                                    "activity": "Log Table Curation Start",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "notebook": {
+                                    "referenceName": "AdlsDataCuration",
+                                    "type": "NotebookReference"
+                                },
+                                "parameters": {
+                                    "ObjectName": {
+                                        "value": {
+                                            "value": "@item().SrcObjectName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "string"
+                                    },
+                                    "ADFConfigTableListId": {
+                                        "value": {
+                                            "value": "@item().ADFConfigTableListId",
+                                            "type": "Expression"
+                                        },
+                                        "type": "string"
+                                    },
+                                    "container_name": {
+                                        "value": {
+                                            "value": "@item().SrcDbOrContainer",
+                                            "type": "Expression"
+                                        },
+                                        "type": "string"
+                                    },
+                                    "relative_path": {
+                                        "value": {
+                                            "value": "@{concat('/',formatDateTime(utcnow(), 'ddMMyyyy'),'/',item().SrcObjectName,'.',item().SrcObjectType)}",
+                                            "type": "Expression"
+                                        },
+                                        "type": "string"
+                                    },
+                                    "OutputFileName": {
+                                        "value": {
+                                            "value": "@item().DestObjectType",
+                                            "type": "Expression"
+                                        },
+                                        "type": "string"
+                                    },
+                                    "stgaccount_name": {
+                                        "value": {
+                                            "value": "@item().StgAccountName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "string"
+                                    }
+                                },
+                                "snapshot": true,
+                                "conf": {
+                                    "spark.dynamicAllocation.enabled": null,
+                                    "spark.dynamicAllocation.minExecutors": null,
+                                    "spark.dynamicAllocation.maxExecutors": null
+                                },
+                                "numExecutors": null
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Set ADLS Container",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "AdlsContainer",
+                    "value": {
+                        "value": "@if(equals(toLower(pipeline().parameters.SourceSystem), 'adls'), 'synapse', toLower(pipeline().parameters.SourceSystem))",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Set Batch ID",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "BatchId",
+                    "value": {
+                        "value": "@pipeline().parameters.ParentBatchId",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "ParentBatchId": {
+                "type": "string",
+                "defaultValue": "0"
+            },
+            "SourceSystem": {
+                "type": "string",
+                "defaultValue": "breeze"
+            },
+            "SourceDBName": {
+                "type": "string",
+                "defaultValue": "all"
+            },
+            "TableList": {
+                "type": "string",
+                "defaultValue": "all"
+            },
+            "RunType": {
+                "type": "string",
+                "defaultValue": "new"
+            }
+        },
+        "variables": {
+            "AdlsContainer": {
+                "type": "String",
+                "defaultValue": "reporting"
+            },
+            "BatchId": {
+                "type": "String"
+            },
+            "CurrentDate": {
+                "type": "String"
+            }
+        },
+        "folder": {
+            "name": "02-data-curation"
+        },
+        "annotations": []
+    },
+    "type": "Microsoft.Synapse/workspaces/pipelines"
+}

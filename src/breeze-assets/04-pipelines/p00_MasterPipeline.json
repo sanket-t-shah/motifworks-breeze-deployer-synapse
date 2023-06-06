@@ -1,0 +1,1204 @@
+{
+    "name": "p00_MasterPipeline",
+    "properties": {
+        "description": "This pipeline implements source system processing end to end, from source data load to reporting processes, any of the steps can disabled.",
+        "activities": [
+            {
+                "name": "Source Fetch Required",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Force Start Required",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@if(equals(variables('RunStatus'),'complete'),pipeline().parameters.IsSourceFetchRequired,activity('Get DW Batch Status').output.firstRow.DWAdlsLoad)",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Load Data Source To ADLS",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "p10_LoadSourceDataToAdls",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "ParentBatchId": {
+                                        "value": "@variables('BatchId')",
+                                        "type": "Expression"
+                                    },
+                                    "SourceSystem": {
+                                        "value": "@pipeline().parameters.SourceSystem",
+                                        "type": "Expression"
+                                    },
+                                    "IsFullLoadRequired": {
+                                        "value": "@pipeline().parameters.IsFullLoadRequired",
+                                        "type": "Expression"
+                                    },
+                                    "SourceDBName": {
+                                        "value": "@pipeline().parameters.SourceDBName",
+                                        "type": "Expression"
+                                    },
+                                    "TableList": {
+                                        "value": "@pipeline().parameters.TableList",
+                                        "type": "Expression"
+                                    },
+                                    "RunType": {
+                                        "value": "@if(equals(variables('RunStatus'),'adls'),'rerun','new')",
+                                        "type": "Expression"
+                                    },
+                                    "SourceFetchFromDate": {
+                                        "value": "@pipeline().parameters.SourceFetchFromDate",
+                                        "type": "Expression"
+                                    },
+                                    "SourceFetchTillDate": {
+                                        "value": "@pipeline().parameters.SourceFetchTillDate",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Log Source Fetch Success",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Load Data Source To ADLS",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_DWBatch_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoad": {
+                                        "value": "false",
+                                        "type": "Boolean"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "DWLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWState": {
+                                        "value": "stage",
+                                        "type": "String"
+                                    },
+                                    "ReportLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "StageLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "status": {
+                                        "value": "1",
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Log Source Fetch Failed",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Load Data Source To ADLS",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_DWBatch_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoad": {
+                                        "value": "true",
+                                        "type": "Boolean"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "DWLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWState": {
+                                        "value": "adls",
+                                        "type": "String"
+                                    },
+                                    "ReportLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "StageLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "status": {
+                                        "value": "2",
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Stage Load Required",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Source Fetch Required",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@if(equals(variables('RunStatus'),'complete'),pipeline().parameters.IsStageLoadRequired,activity('Get DW Batch Status').output.firstRow.DWStageLoad)",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Load ADLS Data to Stage",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "p20_AdlsDataCuration",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "ParentBatchId": {
+                                        "value": "@variables('BatchId')",
+                                        "type": "Expression"
+                                    },
+                                    "SourceSystem": {
+                                        "value": "@pipeline().parameters.SourceSystem",
+                                        "type": "Expression"
+                                    },
+                                    "SourceDBName": {
+                                        "value": "@pipeline().parameters.SourceDBName",
+                                        "type": "Expression"
+                                    },
+                                    "TableList": {
+                                        "value": "@pipeline().parameters.TableList",
+                                        "type": "Expression"
+                                    },
+                                    "RunType": {
+                                        "value": "@if(equals(variables('RunStatus'),'stage'),'rerun','new')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Log Stage Load Success",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Load Data Source To ADLS",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_DWBatch_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "DWLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWState": {
+                                        "value": "dw",
+                                        "type": "String"
+                                    },
+                                    "ReportLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "StageLoad": {
+                                        "value": "false",
+                                        "type": "Boolean"
+                                    },
+                                    "status": {
+                                        "value": "1",
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Log Stage Load Failed",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Load Data Source To ADLS",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_DWBatch_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "DWLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWState": {
+                                        "value": "stage",
+                                        "type": "String"
+                                    },
+                                    "ReportLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "StageLoad": {
+                                        "value": "true",
+                                        "type": "Boolean"
+                                    },
+                                    "status": {
+                                        "value": "2",
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Force Start Required",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Get DW Batch Status",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@or(pipeline().parameters.IsForceStartRequired,equals(activity('Get DW Batch Status').output.firstRow.DWState,'complete'))",
+                        "type": "Expression"
+                    },
+                    "ifFalseActivities": [
+                        {
+                            "name": "Set Previous Batch ID",
+                            "type": "SetVariable",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "BatchId",
+                                "value": {
+                                    "value": "@string(activity('Get DW Batch Status').output.firstRow.DWBatchId)",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Set Previous Run State",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Set Previous Batch ID",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "RunStatus",
+                                "value": {
+                                    "value": "@activity('Get DW Batch Status').output.firstRow.DWState",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    ],
+                    "ifTrueActivities": [
+                        {
+                            "name": "Set New Batch ID",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Get New Batch ID",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "BatchId",
+                                "value": {
+                                    "value": "@string(activity('Get New Batch ID').output.firstRow.DWBatchId)",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get New Batch ID",
+                            "type": "Lookup",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureSqlSource",
+                                    "sqlReaderStoredProcedureName": "[breeze].[usp_DWBatch_OnBegin]",
+                                    "storedProcedureParameters": {
+                                        "AdlsLoad": {
+                                            "type": "Boolean",
+                                            "value": {
+                                                "value": "@pipeline().parameters.IsSourceFetchRequired",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "DWBatchId": {
+                                            "type": "Int32",
+                                            "value": null
+                                        },
+                                        "DWLoad": {
+                                            "type": "Boolean",
+                                            "value": {
+                                                "value": "@pipeline().parameters.IsStageProcessingRequired",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "DWState": {
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@if(pipeline().parameters.IsSourceFetchRequired,'adls',\nif(pipeline().parameters.IsStageLoadRequired,'stage',\nif(pipeline().parameters.IsStageProcessingRequired,'dw',\nif(pipeline().parameters.IsReportProcessingRequired,'report','complete'))))",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "ReportLoad": {
+                                            "type": "Boolean",
+                                            "value": {
+                                                "value": "@pipeline().parameters.IsReportProcessingRequired",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "StageLoad": {
+                                            "type": "Boolean",
+                                            "value": {
+                                                "value": "@pipeline().parameters.IsStageLoadRequired",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "SystemName": {
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.SourceSystem",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    },
+                                    "queryTimeout": "02:00:00",
+                                    "partitionOption": "None"
+                                },
+                                "dataset": {
+                                    "referenceName": "ds_breeze",
+                                    "type": "DatasetReference"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Set Run State",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Get New Batch ID",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "RunStatus",
+                                "value": {
+                                    "value": "@concat('complete')",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Get DW Batch Status",
+                "type": "Lookup",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": {
+                            "value": "@concat('SELECT TOP 1 * FROM breeze.DWBatch WHERE SystemName=''',pipeline().parameters.SourceSystem, '''ORDER BY DWBatchStartDateTime desc')",
+                            "type": "Expression"
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "ds_breeze",
+                        "type": "DatasetReference"
+                    }
+                }
+            },
+            {
+                "name": "Report SP Execute Required",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "DW SP Execute Required",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@if(equals(variables('RunStatus'),'complete'),pipeline().parameters.IsReportProcessingRequired,activity('Get DW Batch Status').output.firstRow.DWReportLoad)",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute Report SP",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "p30_ProcessStageToDW",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "ParentBatchId": {
+                                        "value": "@variables('BatchId')",
+                                        "type": "Expression"
+                                    },
+                                    "SourceSystem": {
+                                        "value": "@pipeline().parameters.SourceSystem",
+                                        "type": "Expression"
+                                    },
+                                    "LoadType": {
+                                        "value": "@pipeline().parameters.LoadType",
+                                        "type": "Expression"
+                                    },
+                                    "ProcList": {
+                                        "value": "@pipeline().parameters.ProcList",
+                                        "type": "Expression"
+                                    },
+                                    "RunType": {
+                                        "value": "@if(equals(variables('RunStatus'),'report'),'rerun','new')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Log Successful Batch End",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute Report SP",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_DWBatch_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "DWLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWState": {
+                                        "value": "complete",
+                                        "type": "String"
+                                    },
+                                    "ReportLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "StageLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "status": {
+                                        "value": "1",
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Log Report SP Load Failed",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute Report SP",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_DWBatch_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "DWLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWState": {
+                                        "value": "report",
+                                        "type": "String"
+                                    },
+                                    "ReportLoad": {
+                                        "value": "true",
+                                        "type": "Boolean"
+                                    },
+                                    "StageLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "status": {
+                                        "value": "2",
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "DW SP Execute Required",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Stage Load Required",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "Execute Resume SQL Pool",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@if(equals(variables('RunStatus'),'complete'),pipeline().parameters.IsStageProcessingRequired,activity('Get DW Batch Status').output.firstRow.DWLoad)",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute DW SP",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "p30_ProcessStageToDW",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "ParentBatchId": {
+                                        "value": "@variables('BatchId')",
+                                        "type": "Expression"
+                                    },
+                                    "SourceSystem": {
+                                        "value": "@pipeline().parameters.SourceSystem",
+                                        "type": "Expression"
+                                    },
+                                    "LoadType": {
+                                        "value": "@pipeline().parameters.LoadType",
+                                        "type": "Expression"
+                                    },
+                                    "ProcList": {
+                                        "value": "@pipeline().parameters.ProcList",
+                                        "type": "Expression"
+                                    },
+                                    "RunType": {
+                                        "value": "@if(equals(variables('RunStatus'),'dw'),'rerun','new')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Log DW SP Load Failed",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute DW SP",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_DWBatch_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "DWLoad": {
+                                        "value": "true",
+                                        "type": "Boolean"
+                                    },
+                                    "DWState": {
+                                        "value": "dw",
+                                        "type": "String"
+                                    },
+                                    "ReportLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "StageLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "status": {
+                                        "value": "2",
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Log DW SP Load Success",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute DW SP",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_DWBatch_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "DWLoad": {
+                                        "value": "false",
+                                        "type": "Boolean"
+                                    },
+                                    "DWState": {
+                                        "value": "report",
+                                        "type": "String"
+                                    },
+                                    "ReportLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "StageLoad": {
+                                        "value": null,
+                                        "type": "Boolean"
+                                    },
+                                    "status": {
+                                        "value": "1",
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Log DW Batch Success",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "Report SP Execute Required",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[breeze].[usp_DWBatch_OnEnd]",
+                    "storedProcedureParameters": {
+                        "AdlsLoad": {
+                            "value": null,
+                            "type": "Boolean"
+                        },
+                        "DWBatchId": {
+                            "value": {
+                                "value": "@variables('BatchId')",
+                                "type": "Expression"
+                            },
+                            "type": "Int32"
+                        },
+                        "DWLoad": {
+                            "value": null,
+                            "type": "Boolean"
+                        },
+                        "DWState": {
+                            "value": "complete",
+                            "type": "String"
+                        },
+                        "ReportLoad": {
+                            "value": null,
+                            "type": "Boolean"
+                        },
+                        "StageLoad": {
+                            "value": null,
+                            "type": "Boolean"
+                        },
+                        "status": {
+                            "value": "1",
+                            "type": "Int32"
+                        },
+                        "SystemName": {
+                            "value": {
+                                "value": "@pipeline().parameters.SourceSystem",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Archive Stage Data Required",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Log DW Batch Success",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@if(equals(variables('RunStatus'),'complete'),pipeline().parameters.IsStageArchiveRequired,activity('Get DW Batch Status').output.firstRow.DWReportLoad)",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute Stage Archive",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "p40_ArchiveDataToADLS",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "ParentBatchId": {
+                                        "value": "@variables('BatchId')",
+                                        "type": "Expression"
+                                    },
+                                    "SourceSystem": {
+                                        "value": "@pipeline().parameters.SourceSystem",
+                                        "type": "Expression"
+                                    },
+                                    "SourceDBName": {
+                                        "value": "@pipeline().parameters.SourceDBName",
+                                        "type": "Expression"
+                                    },
+                                    "TableList": {
+                                        "value": "@pipeline().parameters.TableList",
+                                        "type": "Expression"
+                                    },
+                                    "RunType": {
+                                        "value": "@if(equals(variables('RunStatus'),'report'),'rerun','new')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Execute Resume SQL Pool",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Stage Load Required",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "p99_PauseResumeSQLPool",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "ResourceGroup": "rg-breeze-dev",
+                        "SQLPoolName": "synpsbreezedev",
+                        "Task": "resume"
+                    }
+                }
+            }
+        ],
+        "concurrency": 1,
+        "parameters": {
+            "SourceSystem": {
+                "type": "string",
+                "defaultValue": "adls"
+            },
+            "SourceDBName": {
+                "type": "string",
+                "defaultValue": "all"
+            },
+            "TableList": {
+                "type": "string",
+                "defaultValue": "all"
+            },
+            "ProcList": {
+                "type": "string",
+                "defaultValue": "all"
+            },
+            "IsSourceFetchRequired": {
+                "type": "bool",
+                "defaultValue": false
+            },
+            "IsStageLoadRequired": {
+                "type": "bool",
+                "defaultValue": false
+            },
+            "IsStageProcessingRequired": {
+                "type": "bool",
+                "defaultValue": true
+            },
+            "IsReportProcessingRequired": {
+                "type": "bool",
+                "defaultValue": false
+            },
+            "IsStageArchiveRequired": {
+                "type": "bool",
+                "defaultValue": false
+            },
+            "LoadType": {
+                "type": "string",
+                "defaultValue": "all"
+            },
+            "IsFullLoadRequired": {
+                "type": "bool",
+                "defaultValue": false
+            },
+            "SourceFetchFromDate": {
+                "type": "string",
+                "defaultValue": "0"
+            },
+            "SourceFetchTillDate": {
+                "type": "string",
+                "defaultValue": "0"
+            },
+            "IsForceStartRequired": {
+                "type": "bool",
+                "defaultValue": true
+            }
+        },
+        "variables": {
+            "BatchId": {
+                "type": "String",
+                "defaultValue": "Null"
+            },
+            "RunStatus": {
+                "type": "String"
+            },
+            "CurrentDate": {
+                "type": "String"
+            }
+        },
+        "annotations": []
+    },
+    "type": "Microsoft.Synapse/workspaces/pipelines"
+}

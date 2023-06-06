@@ -1,0 +1,36 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "{{LOCATION}}"
+        },
+        "breezeTagValues": {
+            "value": {{TAGS}}
+        },
+        "breezeSynapseStorageAccountName": {
+            "value": "{{STORAGE_ACCOUNT_NAME}}"
+        },
+        "breezeSynapseWorkspaceName": {
+            "value": "{{SYNAPSE_WORKSPACE_NAME}}"
+        },
+        "breezeSynapseSqlPoolDedicatedSku": {
+            "value": "{{SYNAPSE_DEDICATED_POOL_SKU}}"
+        },
+        "breezeSynapseAdminUsername": {
+            "value": "{{SYNAPSE_ADMIN_USERNAME}}"
+        },
+        "breezeSynapseAdminPassword": {
+            "value": "{{SYNAPSE_ADMIN_PASSWORD}}"
+        },
+        "breezeSynapseAdministratorUserGuid": {
+            "value": "{{SYNAPSE_ADMIN_AAD_GUID}}"
+        },
+        "_artifactsLocation": {
+            "value": "https://stmwbreezesourceassets.blob.core.windows.net"
+        },
+        "_artifactsLocationSasToken": {
+            "value": ""
+        }
+    }
+}

@@ -1,0 +1,98 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "breezeTagValues": {
+            "type": "object"
+        },
+        "virtualMachineNicName": {
+            "type": "string"
+        },
+        "virtualMachineName": {
+            "type": "string"
+        },
+        "virtualMachineDiskName": {
+            "type": "string"
+        },
+        "virtualMachineUsername": {
+            "type": "string"
+        },
+        "virtualMachinePassword": {
+            "type": "string"
+        },
+        "virtualMachineSize": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2022-11-01",
+            "name": "[parameters('virtualMachineName')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "plan": {
+                "name": "default-plan",
+                "publisher": "motifworks-azure-apps",
+                "product": "breeze-installer-vm"
+            },
+            "properties": {
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": false
+                    }
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('virtualMachineSize')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('virtualMachineNicName'))]",
+                            "properties": {
+                                "deleteOption": "Delete",
+                                "primary": true
+                            }
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "adminPassword": "[parameters('virtualMachinePassword')]",
+                    "adminUsername": "[parameters('virtualMachineUsername')]",
+                    "allowExtensionOperations": true,
+                    "computerName": "[parameters('virtualMachineName')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false,
+                        "enableVMAgentPlatformUpdates": false,
+                        "provisionVMAgent": true
+                    }
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "offer": "breeze-installer-vm",
+                        "publisher": "motifworks-azure-apps",
+                        "sku": "default-plan",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage",
+                        "deleteOption": "Delete",
+                        "diskSizeGB": 30,
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS"
+                        },
+                        "name": "[parameters('virtualMachineDiskName')]",
+                        "osType": "Linux"
+                    }
+                }
+            }
+        }
+    ]
+}

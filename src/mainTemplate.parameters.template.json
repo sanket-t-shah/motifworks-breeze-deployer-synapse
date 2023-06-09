@@ -27,10 +27,19 @@
             "value": "{{SYNAPSE_ADMIN_AAD_GUID}}"
         },
         "_artifactsLocation": {
-            "value": "https://stmwbreezesourceassets.blob.core.windows.net"
+            "value": "https://stmwbreezeassets.blob.core.windows.net"
         },
         "_artifactsLocationSasToken": {
             "value": ""
+        },
+         "breezeDeployerVnetAddressPrefix": {
+            "value": "10.0.0.0/24"
+        },
+        "breezeDeployerVirtualMachineUsername": {
+            "value": "breeze"
+        },
+        "breezeDeployerVirtualMachinePassword": {
+            "value": "Smoothie@2023"
         }
-    }
+   }
 }

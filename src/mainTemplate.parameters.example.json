@@ -6,10 +6,7 @@
             "value": "useast2"
         },
         "breezeTagValues": {
-            "value": {
-                "Generator": "Motifworks BREEZE Data Framework",
-                "Project": "BREEZE"
-            }
+            "value": {"Generator": "Motifworks BREEZE Data Framework", "Project": "BREEZE"}
         },
         "breezeSynapseStorageAccountName": {
             "value": "stmwbreezedev"
@@ -28,6 +25,15 @@
         },
         "breezeSynapseAdministratorUserGuid": {
             "value": ""
+        },
+        "breezeDeployerVnetAddressPrefix": {
+            "value": "10.0.0.0/24"
+        },
+        "breezeDeployerVirtualMachineUsername": {
+            "value": "breeze"
+        },
+        "breezeDeployerVirtualMachinePassword": {
+            "value": "Smoothie@2023"
         }
     }
 }

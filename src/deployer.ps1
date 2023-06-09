@@ -530,29 +530,35 @@ Creating Datasets in Azure Synapse...'
 
         # Iterate over Datasets and create each separately.
         foreach ($currentDataset in $datasets) {
-            Write-Host `
-                -ForegroundColor Yellow `
-                -Object "Creating Dataset: $($currentDataset.BaseName)"
+            try {
+                Write-Host `
+                    -ForegroundColor Yellow `
+                    -Object "Creating Dataset: $($currentDataset.BaseName)"
 
-            # Read all file contents.
-            $fileContents = Get-Content `
-                -Raw `
-                -Path "./breeze-assets/02-datasets/$($currentDataset.BaseName).json"
+                # Read all file contents.
+                $fileContents = Get-Content `
+                    -Raw `
+                    -Path "./breeze-assets/02-datasets/$($currentDataset.BaseName).json"
 
-            # Perform Replacements.
-            $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}', $defaultLinkedServiceNameSynapse)
-            $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_STORAGE}}', $defaultLinkedServiceNameStorage)
+                # Perform Replacements.
+                $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}', $defaultLinkedServiceNameSynapse)
+                $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_STORAGE}}', $defaultLinkedServiceNameStorage)
 
-            # Create Dataset on Azure Synapse.
-            Invoke-RestMethod `
-                -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/datasets/$($currentDataset.BaseName)?api-version=2021-06-01" `
-                -Method PUT `
-                -Body $fileContents `
-                -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
-                -ContentType 'application/json'
+                # Create Dataset on Azure Synapse.
+                Invoke-RestMethod `
+                    -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/datasets/$($currentDataset.BaseName)?api-version=2021-06-01" `
+                    -Method PUT `
+                    -Body $fileContents `
+                    -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
+                    -ContentType 'application/json'
+            }
+            catch {
+                Write-Host `
+                    -ForegroundColor Red `
+                    -Object "An error occurred while publishing Dataset: $($currentDataset.BaseName). Error Stack: $($_)"
+            }
         }
 
-        
         # This is necessary as Tokens expire much frequently.
         $this.RefreshAccessTokens()
 
@@ -567,29 +573,36 @@ Creating Notebooks in Azure Synapse...'
 
         # Iterate over Notebooks and create each separately.
         foreach ($currentNotebook in $notebooks) {
-            Write-Host `
-                -ForegroundColor Yellow `
-                -Object "Creating Notebook: $($currentNotebook.BaseName)"
+            try {
+                Write-Host `
+                    -ForegroundColor Yellow `
+                    -Object "Creating Notebook: $($currentNotebook.BaseName)"
 
-            # Read all file contents.
-            $fileContents = Get-Content `
-                -Raw `
-                -Path "./breeze-assets/03-notebooks/$($currentNotebook.BaseName).ipynb"
+                # Read all file contents.
+                $fileContents = Get-Content `
+                    -Raw `
+                    -Path "./breeze-assets/03-notebooks/$($currentNotebook.BaseName).ipynb"
 
-            # Perform Replacements.
-            $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}', $defaultLinkedServiceNameSynapse)
-            $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_STORAGE}}', $defaultLinkedServiceNameStorage)
-            $fileContents = $fileContents.Replace('{{SYNPAPSE_WORKSPACE_NAME}}', $this.parameters.SynapseWorkspaceName)
-            $fileContents = $fileContents.Replace('{{BREEZE_ADMIN_USERNAME}}', $this.parameters.SynapseAdminUsername)
-            $fileContents = $fileContents.Replace('{{BREEZE_ADMIN_PASSWORD}}', $this.parameters.SynapseAdminPassword)
+                # Perform Replacements.
+                $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}', $defaultLinkedServiceNameSynapse)
+                $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_STORAGE}}', $defaultLinkedServiceNameStorage)
+                $fileContents = $fileContents.Replace('{{SYNPAPSE_WORKSPACE_NAME}}', $this.parameters.SynapseWorkspaceName)
+                $fileContents = $fileContents.Replace('{{BREEZE_ADMIN_USERNAME}}', $this.parameters.SynapseAdminUsername)
+                $fileContents = $fileContents.Replace('{{BREEZE_ADMIN_PASSWORD}}', $this.parameters.SynapseAdminPassword)
 
-            # Create Notebook on Azure Synapse.
-            Invoke-RestMethod `
-                -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/notebooks/$($currentNotebook.BaseName)?api-version=2021-06-01" `
-                -Method PUT `
-                -Body $fileContents `
-                -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
-                -ContentType 'application/json'
+                # Create Notebook on Azure Synapse.
+                Invoke-RestMethod `
+                    -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/notebooks/$($currentNotebook.BaseName)?api-version=2021-06-01" `
+                    -Method PUT `
+                    -Body $fileContents `
+                    -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
+                    -ContentType 'application/json'
+            }
+            catch {
+                Write-Host `
+                    -ForegroundColor Red `
+                    -Object "An error occurred while publishing Notebook: $($currentNotebook.BaseName). Error Stack: $($_)"
+            }
         }
 
         # This is necessary as Tokens expire much frequently.
@@ -606,26 +619,33 @@ Creating Pipelines in Azure Synapse...'
 
         # Iterate over Pipelines and create each separately.
         foreach ($currentPipeline in $pipelines) {
-            Write-Host `
-                -ForegroundColor Yellow `
-                "Creating Pipeline: $($currentPipeline.BaseName)"
+            try {
+                Write-Host `
+                    -ForegroundColor Yellow `
+                    "Creating Pipeline: $($currentPipeline.BaseName)"
 
-            # Read all file contents.
-            $fileContents = Get-Content `
-                -Raw `
-                -Path "./breeze-assets/04-pipelines/$($currentPipeline.BaseName).json"
+                # Read all file contents.
+                $fileContents = Get-Content `
+                    -Raw `
+                    -Path "./breeze-assets/04-pipelines/$($currentPipeline.BaseName).json"
 
-            # Perform Replacements.
-            $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}', $defaultLinkedServiceNameSynapse)
-            $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_STORAGE}}', $defaultLinkedServiceNameStorage)
+                # Perform Replacements.
+                $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}', $defaultLinkedServiceNameSynapse)
+                $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_STORAGE}}', $defaultLinkedServiceNameStorage)
 
-            # Create Pipeline on Azure Synapse.
-            Invoke-RestMethod `
-                -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/pipelines/$($currentPipeline.BaseName)?api-version=2021-06-01" `
-                -Method PUT `
-                -Body $fileContents `
-                -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
-                -ContentType 'application/json'
+                # Create Pipeline on Azure Synapse.
+                Invoke-RestMethod `
+                    -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/pipelines/$($currentPipeline.BaseName)?api-version=2021-06-01" `
+                    -Method PUT `
+                    -Body $fileContents `
+                    -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
+                    -ContentType 'application/json'
+            }
+            catch {
+                Write-Host `
+                    -ForegroundColor Red `
+                    -Object "An error occurred while publishing Pipeline: $($currentPipeline.BaseName). Error Stack: $($_)"
+            }
         }
     }
 

@@ -7,59 +7,83 @@
             "isWizard": true,
             "basics": {}
         },
-        "basics": [],
-        "steps": [
+        "basics": [
             {
-                "name": "StepGlobalOptions",
-                "label": "A word of Caution",
-                "elements": [
-                    {
-                        "name": "sectionGlobalOptions1",
-                        "type": "Microsoft.Common.Section",
-                        "label": "Before you proceed...",
-                        "elements": [
-                            {
-                                "name": "warningStepGlobalOptions1",
-                                "type": "Microsoft.Common.InfoBox",
-                                "visible": "true",
-                                "options": {
-                                    "icon": "Warning",
-                                    "text": "Do ensure that you select location that has all target requested services available."
-                                }
-                            },
-                            {
-                                "name": "infoStepGlobalOptions1",
-                                "type": "Microsoft.Common.InfoBox",
-                                "visible": "true",
-                                "options": {
-                                    "icon": "Info",
-                                    "text": "You need to get your Use Object ID from Active Directory associated with this Azure Account. Click anywhere in this box to learn how to do that.",
-                                    "uri": "https://stmwbreezesourceassets.z20.web.core.windows.net/index.html"
-                                }
-                            }
-                        ]
-                    }
-                ]
+                "name": "warningStepGlobalOptions1",
+                "type": "Microsoft.Common.InfoBox",
+                "visible": "true",
+                "options": {
+                    "icon": "Warning",
+                    "text": "Do ensure that you select location that has all target requested services available."
+                }
             },
             {
-                "name": "StepBreezeTags",
-                "label": "Tags for Resources",
+                "name": "infoStepGlobalOptions1",
+                "type": "Microsoft.Common.InfoBox",
+                "visible": "true",
+                "options": {
+                    "icon": "Info",
+                    "text": "You need to get your Use Object ID from Active Directory associated with this Azure Account. Click anywhere in this box to learn how to do that.",
+                    "uri": "https://stmwbreezeassets.z20.web.core.windows.net/index.html"
+                }
+            },
+            {
+                "name": "breezeTagValues",
+                "type": "Microsoft.Common.TagsByResource",
+                "toolTip": "Tags that should be applied to selected Resources.",
+                "resources": [
+                    "Microsoft.Storage/storageAccounts",
+                    "Microsoft.Synapse/workspaces",
+                    "Microsoft.Synapse/workspaces/sqlPools",
+                    "Microsoft.Network/virtualNetworks",
+                    "Microsoft.Network/networkSecurityGroups",
+                    "Microsoft.Network/networkInterfaces",
+                    "Microsoft.Network/publicIPAddresses",
+                    "Microsoft.Compute/virtualMachines",
+                    "Microsoft.Compute/virtualMachines/extensions"
+                ]
+            }
+        ],
+        "steps": [
+            {
+                "name": "StepBreezeDeployer",
+                "label": "Deployment Engine VM",
                 "elements": [
                     {
-                        "name": "sectionResourceTags",
-                        "type": "Microsoft.Common.Section",
-                        "label": "Resource Tags",
-                        "elements": [
-                            {
-                                "name": "breezeTagValues",
-                                "type": "Microsoft.Common.TagsByResource",
-                                "resources": [
-                                    "Microsoft.Storage/storageAccounts",
-                                    "Microsoft.Synapse/workspaces",
-                                    "Microsoft.Synapse/workspaces/sqlPools"
-                                ]
-                            }
-                        ]
+                        "name": "breezeDeployerVnetAddressPrefix",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "VNET Address Space",
+                        "toolTip": "BREEZE Deployer VNET Address Space.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^([0-9]{1,3}\\.){3}[0-9]{1,3}($|/(16|24))$",
+                            "validationMessage": "Please enter valid CIDR Range."
+                        }
+                    },
+                    {
+                        "name": "breezeDeployerVirtualMachineUsername",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "VM Username",
+                        "toolTip": "BREEZE Deployer VM Username.",
+                        "constraints": {
+                            "required": true,
+                            "regex": ".*",
+                            "validationMessage": "Please enter valid username."
+                        }
+                    },
+                    {
+                        "name": "breezeDeployerVirtualMachinePassword",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                            "password": "VM Password",
+                            "confirmPassword": "Confirm Password"
+                        },
+                        "toolTip": "BREEZE Deployer VM Password.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$",
+                            "validationMessage": "Password should have: (1) At least one upper case English letter, (2) At least one lower case English letter, (3) At least one digit, (4) At least one special character from #?!@$%^&*-, (5) Minimum eight in length."
+                        }
                     }
                 ]
             },
@@ -224,8 +248,11 @@
         ],
         "outputs": {
             "location": "[location()]",
-            "breezeTagValues": "[steps('StepBreezeTags').sectionResourceTags.breezeTagValues]",
-            "breezeSynapseStorageAccountName": "[steps('StepBreeze').sectionStorageAccount.breezeSynapseStorageAccountName.storageSelectorElement.name]",
+            "breezeTagValues": "[basics('breezeTagValues').breezeTagValues]",
+            "breezeDeployerVnetAddressPrefix": "[steps('StepBreezeDeployer').breezeDeployerVnetAddressPrefix]",
+            "breezeDeployerVirtualMachineUsername": "[steps('StepBreezeDeployer').breezeDeployerVirtualMachineUsername]",
+            "breezeDeployerVirtualMachinePassword": "[steps('StepBreezeDeployer').breezeDeployerVirtualMachinePassword]",
+            "breezeSynapseStorageAccountName": "[steps('StepBreeze').sectionStorageAccount.breezeSynapseStorageAccountName.name]",
             "breezeSynapseWorkspaceName": "[steps('StepBreeze').sectionSynapse.breezeSynapseWorkspaceName]",
             "breezeSynapseSqlPoolDedicatedSku": "[steps('StepBreeze').sectionSynapse.breezeSynapseSqlPoolDedicatedSku]",
             "breezeSynapseAdminUsername": "[steps('StepBreeze').sectionSynapse.breezeSynapseAdminUsername]",
@@ -235,7 +262,13 @@
         "resourceTypes": [
             "Microsoft.Storage/storageAccounts",
             "Microsoft.Synapse/workspaces",
-            "Microsoft.Synapse/workspaces/sqlPools"
+            "Microsoft.Synapse/workspaces/sqlPools",
+            "Microsoft.Network/virtualNetworks",
+            "Microsoft.Network/networkSecurityGroups",
+            "Microsoft.Network/publicIPAddresses",
+            "Microsoft.Network/networkInterfaces",
+            "Microsoft.Compute/virtualMachines",
+            "Microsoft.Compute/virtualMachines/extensions"
         ]
     }
 }

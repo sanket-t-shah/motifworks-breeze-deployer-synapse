@@ -15,7 +15,7 @@
     "resources": [
         {
             "type": "Microsoft.Network/networkSecurityGroups",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2022-07-01",
             "name": "[parameters('virtualMachineNSGName')]",
             "location": "[parameters('location')]",
             "tags": "[parameters('breezeTagValues')]",

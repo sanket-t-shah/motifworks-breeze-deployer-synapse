@@ -2,44 +2,87 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "_artifactsLocation": {
+            "value": "https://stmwbreezeassets.blob.core.windows.net/"
+        },
         "location": {
             "value": "eastus2"
         },
         "breezeTagValues": {
-            "value": {"Generator": "Motifworks BREEZE Data Framework", "Project": "BREEZE"}
-        },
-        "breezeSynapseStorageAccountName": {
-            "value": "stmwbreezedev"
-        },
-        "breezeSynapseWorkspaceName": {
-            "value": "synw-breeze-dev"
-        },
-        "breezeSynapseSqlPoolDedicatedSku": {
-            "value": "DW100c"
-        },
-        "breezeSynapseAdminUsername": {
-            "value": "breezeadmin"
-        },
-        "breezeSynapseAdminPassword": {
-            "value": "Smoothie@2023"
-        },
-        "breezeSynapseAdministratorUserGuid": {
-            "value": "c1ebf919-77fd-4f2b-8ff6-490945f3eed5"
+            "value": {
+                "Microsoft.Synapse/workspaces/sqlPools": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Compute/virtualMachines/extensions": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Network/networkInterfaces": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Network/networkSecurityGroups": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Network/publicIPAddresses": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Storage/storageAccounts": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Synapse/workspaces": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Compute/virtualMachines": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Network/virtualNetworks": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                }
+            }
         },
         "breezeDeployerVnetAddressPrefix": {
             "value": "10.0.0.0/24"
         },
         "breezeDeployerVirtualMachineUsername": {
-            "value": "breeze"
+            "value": "deployer"
         },
         "breezeDeployerVirtualMachinePassword": {
+            "value": "Smoothie@2022"
+        },
+        "breezeSynapseStorageAccountName": {
+            "value": "stmwbreezedev"
+        },
+        "breezeSynapseWorkspaceName": {
+            "value": "syn-breeze-dev"
+        },
+        "breezeSynapseSqlPoolDedicatedSku": {
+            "value": "DW100c"
+        },
+        "breezeSynapseAdminUsername": {
+            "value": "breeze"
+        },
+        "breezeSynapseAdminPassword": {
             "value": "Smoothie@2023"
         },
-        "_artifactsLocation": {
-            "value": "https://stmwbreezeassets.blob.core.windows.net"
-        },
-        "_artifactsLocationSasToken": {
-            "value": ""
+        "breezeSynapseAdministratorUserGuid": {
+            "value": "132ea981-f6de-401f-bb1e-ae64b2af635b"
         }
     }
 }

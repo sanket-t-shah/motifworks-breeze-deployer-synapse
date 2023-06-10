@@ -122,9 +122,9 @@
   },
   "resources": [
     {
-      "name": "pid-1525acdc-60b8-5947-8b23-c1eef9881631",
+      "name": "pid-2fbba5ec-8437-44a1-9875-5c1564b4237a-partnercenter",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2019-10-01",
+      "apiVersion": "2022-09-01",
       "properties": {
         "mode": "Incremental",
         "template": {
@@ -150,7 +150,7 @@
             "value": "[parameters('location')]"
           },
           "breezeTagValues": {
-            "value": "[parameters('breezeTagValues')]"
+            "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Storage/storageAccounts'), parameters('breezeTagValues')['Microsoft.Storage/storageAccounts'], json('{}')) ]"
           },
           "breezeSynapseStorageAccountName": {
             "value": "[parameters('breezeSynapseStorageAccountName')]"
@@ -215,7 +215,7 @@
             "value": "[parameters('location')]"
           },
           "breezeTagValues": {
-            "value": "[parameters('breezeTagValues')]"
+            "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/virtualNetworks'), parameters('breezeTagValues')['Microsoft.Network/virtualNetworks'], json('{}')) ]"
           },
           "virtualMachineVnetName": {
             "value": "[variables('virtualMachineVnetName')]"
@@ -246,7 +246,7 @@
             "value": "[parameters('location')]"
           },
           "breezeTagValues": {
-            "value": "[parameters('breezeTagValues')]"
+            "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/networkSecurityGroups'), parameters('breezeTagValues')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]"
           },
           "virtualMachineNSGName": {
             "value": "[variables('virtualMachineNSGName')]"
@@ -268,7 +268,7 @@
             "value": "[parameters('location')]"
           },
           "breezeTagValues": {
-            "value": "[parameters('breezeTagValues')]"
+            "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/publicIPAddresses'), parameters('breezeTagValues')['Microsoft.Network/publicIPAddresses'], json('{}')) ]"
           },
           "virtualMachineName": {
             "value": "[variables('virtualMachineName')]"
@@ -297,7 +297,7 @@
             "value": "[parameters('location')]"
           },
           "breezeTagValues": {
-            "value": "[parameters('breezeTagValues')]"
+            "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/networkInterfaces'), parameters('breezeTagValues')['Microsoft.Network/networkInterfaces'], json('{}')) ]"
           },
           "virtualMachineVnetName": {
             "value": "[variables('virtualMachineVnetName')]"
@@ -334,7 +334,7 @@
             "value": "[parameters('location')]"
           },
           "breezeTagValues": {
-            "value": "[parameters('breezeTagValues')]"
+            "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Compute/virtualMachines'), parameters('breezeTagValues')['Microsoft.Compute/virtualMachines'], json('{}')) ]"
           },
           "virtualMachineNicName": {
             "value": "[variables('virtualMachineNicName')]"
@@ -362,7 +362,8 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "dependsOn": [
-        "virtual_machine"
+        "[resourceId('Microsoft.Resources/deployments', 'virtual_machine')]",
+        "[resourceId('Microsoft.Resources/deployments', 'synapse')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -374,7 +375,7 @@
             "value": "[parameters('location')]"
           },
           "breezeTagValues": {
-            "value": "[parameters('breezeTagValues')]"
+            "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Compute/virtualMachines/extensions'), parameters('breezeTagValues')['Microsoft.Compute/virtualMachines/extensions'], json('{}')) ]"
           },
           "virtualMachineName": {
             "value": "[variables('virtualMachineName')]"

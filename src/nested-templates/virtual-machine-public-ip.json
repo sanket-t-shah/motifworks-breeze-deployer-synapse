@@ -18,7 +18,7 @@
     "resources": [
         {
             "type": "Microsoft.Network/publicIPAddresses",
-            "apiVersion": "2022-09-01",
+            "apiVersion": "2022-07-01",
             "name": "[parameters('virtualMachinePublicIPName')]",
             "location": "[parameters('location')]",
             "tags": "[parameters('breezeTagValues')]",
@@ -26,9 +26,6 @@
                 "name": "Basic"
             },
             "properties": {
-                "ddosSettings": {
-                    "protectionMode": "Disabled"
-                },
                 "deleteOption": "Delete",
                 "dnsSettings": {
                     "domainNameLabel": "[parameters('virtualMachineName')]"

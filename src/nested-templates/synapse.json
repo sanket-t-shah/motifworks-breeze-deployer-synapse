@@ -43,7 +43,7 @@
       "apiVersion": "2021-06-01",
       "name": "[parameters('breezeSynapseWorkspaceName')]",
       "location": "[parameters('location')]",
-      "tags": "[parameters('breezeTagValues')]",
+      "tags": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Synapse/workspaces'), parameters('breezeTagValues')['Microsoft.Synapse/workspaces'], json('{}')) ]",
       "identity": {
         "type": "SystemAssigned"
       },
@@ -68,7 +68,7 @@
         "[resourceId('Microsoft.Synapse/workspaces', parameters('breezeSynapseWorkspaceName'))]"
       ],
       "location": "[parameters('location')]",
-      "tags": "[parameters('breezeTagValues')]",
+      "tags": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Synapse/workspaces/sqlPools'), parameters('breezeTagValues')['Microsoft.Synapse/workspaces/sqlPools'], json('{}')) ]",
       "sku": {
         "name": "[parameters('breezeSynapseSqlPoolDedicatedSku')]"
       },

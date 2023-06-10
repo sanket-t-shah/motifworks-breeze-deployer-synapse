@@ -27,7 +27,7 @@
     "resources": [
         {
             "type": "Microsoft.Network/networkInterfaces",
-            "apiVersion": "2019-11-01",
+            "apiVersion": "2022-07-01",
             "name": "[parameters('virtualMachineNicName')]",
             "location": "[parameters('location')]",
             "tags": "[parameters('breezeTagValues')]",

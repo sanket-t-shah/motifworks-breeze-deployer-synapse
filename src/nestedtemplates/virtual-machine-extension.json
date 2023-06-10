@@ -8,7 +8,16 @@
         "breezeTagValues": {
             "type": "object"
         },
+        "breezeTagValuesSynapseWorkspace": {
+            "type": "string"
+        },
+        "breezeTagValuesSynapseDedicatedPool": {
+            "type": "string"
+        },
         "virtualMachineName": {
+            "type": "string"
+        },
+        "breezeSynapseStorageAccountName": {
             "type": "string"
         },
         "synapseWorkspaceName": {
@@ -19,6 +28,12 @@
         },
         "synapseWorkspacePassword": {
             "type": "securestring"
+        },
+        "breezeSynapseSqlPoolDedicatedSku": {
+            "type": "string"
+        },
+        "breezeSynapseAdministratorUserGuid": {
+            "type": "string"
         },
         "pathVirtualMachineScriptBash": {
             "type": "string"
@@ -64,7 +79,7 @@
         }
     },
     "variables": {
-        "scriptArgs": "[concat('-s \"', parameters('synapseWorkspaceName'), '\" -u \"', parameters('synapseWorkspaceUsername'), '\" -p \"', parameters('synapseWorkspacePassword'),'\"')]"
+        "scriptArgs": "[concat('-a \"', resourceGroup().name, '\" -b \"', resourceGroup().location, '\" -c \"', parameters('breezeSynapseStorageAccountName'), '\" -d \"', parameters('synapseWorkspaceName'), '\" -e \"', parameters('synapseWorkspaceUsername'), '\" -f \"', parameters('synapseWorkspacePassword'),'\" -g \"syndpbreeze\" -h \"', parameters('breezeSynapseSqlPoolDedicatedSku'), '\" -i \"', parameters('breezeSynapseAdministratorUserGuid'), '\" -j \"', parameters('breezeTagValuesSynapseWorkspace'), '\" -k \"', parameters('breezeTagValuesSynapseDedicatedPool'), '\"')]"
     },
     "resources": [
         {

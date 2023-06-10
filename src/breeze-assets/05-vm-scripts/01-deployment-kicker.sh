@@ -1,33 +1,72 @@
 #/bin/bash -e
 echo $@
-while getopts "s:u:p:" opt; do
+while getopts "a:b:c:d:e:f:g:h:i:j:k:" opt; do
     case $opt in
-		s)
-			synapse_workspace_name=$OPTARG
+		a)
+			resourceGroupName=$OPTARG
 		;;
-		u)
-			synapse_workspace_username=$OPTARG
+		b)
+			location=$OPTARG
 		;;
-		p)
-			synapse_workspace_password=$OPTARG
+		c)
+			storageAccountName=$OPTARG
+		;;
+		d)
+			synapseWorkspaceName=$OPTARG
+		;;
+		e)
+			synapseAdminUsername=$OPTARG
+		;;
+		f)
+			synapseAdminPassword=$OPTARG
+		;;
+		g)
+			synapseDedicatedPoolName=$OPTARG
+		;;
+		h)
+			synapseDedicatedPoolSize=$OPTARG
+		;;
+		i)
+			synapseAADAdministratorGuid=$OPTARG
+		;;
+		j)
+			tagsSynapseWorkspace=$OPTARG
+		;;
+		k)
+			tagsSynapseDedicatedPool=$OPTARG
 		;;
     esac
 done
 echo "................................................................................"
-echo "Printing Environment Variables..."
-echo "Synapse Workspace Name     : $synapse_workspace_name"
-echo "Synapse Workspace Username : $synapse_workspace_username"
-echo "Synapse Workspace Password : $synapse_workspace_password"
-echo "Printed Environment Variables."
-echo "................................................................................"
 echo "Currently into Directory..."
 echo `pwd`
 echo "................................................................................"
-echo "Printing Environment Variables..."
-echo `env`
-echo "Printed Environment Variables."
-echo "................................................................................"
 echo "Calling PowerShell script..."
-echo "sudo pwsh -Command ./02-deployment-executor.ps1 -synapseWorkspaceName $synapse_workspace_name -synapseAdminUsername $synapse_workspace_username -synapseAdminPassword $synapse_workspace_password"
-sudo pwsh -Command ./02-deployment-executor.ps1 -synapseWorkspaceName $synapse_workspace_name -synapseAdminUsername $synapse_workspace_username -synapseAdminPassword $synapse_workspace_password
+echo "sudo pwsh -Command ./02-deployment-executor.ps1 
+	-resourceGroupName $resourceGroupName
+	-location $location
+	-storageAccountName $storageAccountName
+	-synapseWorkspaceName $synapseWorkspaceName
+	-synapseAdminUsername $synapseAdminUsername
+	-synapseAdminPassword $synapseAdminPassword
+	-synapseDedicatedPoolName $synapseDedicatedPoolName
+	-synapseDedicatedPoolSize $synapseDedicatedPoolSize
+	-synapseAADAdministratorGuid $synapseAADAdministratorGuid
+	-tagsSynapseWorkspace $tagsSynapseWorkspace
+	-tagsSynapseDedicatedPool $tagsSynapseDedicatedPool"
+
+sudo pwsh -Command ./02-deployment-executor.ps1 \
+-resourceGroupName $resourceGroupName \
+-location $location \
+-storageAccountName $storageAccountName \
+-synapseWorkspaceName $synapseWorkspaceName \
+-synapseAdminUsername $synapseAdminUsername \
+-synapseAdminPassword $synapseAdminPassword \
+-synapseDedicatedPoolName $synapseDedicatedPoolName \
+-synapseDedicatedPoolSize $synapseDedicatedPoolSize \
+-synapseAADAdministratorGuid $synapseAADAdministratorGuid \
+-tagsSynapseWorkspace $tagsSynapseWorkspace \
+-tagsSynapseDedicatedPool $tagsSynapseDedicatedPool
+
 echo "Called PowerShell script."
+echo "We are done successfully..."

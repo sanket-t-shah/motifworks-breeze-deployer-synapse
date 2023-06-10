@@ -1,11 +1,28 @@
 param (
+    [Parameter(Mandatory = $false)][string]$resourceGroupName,
+    [Parameter(Mandatory = $false)][string]$location,
+    [Parameter(Mandatory = $false)][string]$storageAccountName,
     [Parameter(Mandatory = $false)][string]$synapseWorkspaceName,
     [Parameter(Mandatory = $false)][string]$synapseAdminUsername,
-    [Parameter(Mandatory = $false)][string]$synapseAdminPassword
+    [Parameter(Mandatory = $false)][string]$synapseAdminPassword,
+    [Parameter(Mandatory = $false)][string]$synapseDedicatedPoolName,
+    [Parameter(Mandatory = $false)][string]$synapseDedicatedPoolSize,
+    [Parameter(Mandatory = $false)][string]$synapseAADAdministratorGuid,
+    [Parameter(Mandatory = $false)][string]$tagsSynapseWorkspace,
+    [Parameter(Mandatory = $false)][string]$tagsSynapseDedicatedPool
 )
 class BreezeParameters {
     # There should be EXACTLY 1 Subscription ID available for going further.
     [string]$SubscriptionId
+
+    # Resource Group Name where Synapse instance should be forked.
+    [string]$ResourceGroupName
+
+    # Location where Synapse Instance should be created.
+    [string]$Location
+
+    # Storage Account Name that Synapse should use.
+    [string]$StorageAccountName
 
     # Provide Synapse Workspace Name to be used.
     [string]$SynapseWorkspaceName
@@ -16,20 +33,38 @@ class BreezeParameters {
     # Provide Synapse Administrator Password.
     [string]$SynapseAdminPassword
 
-    # Provide Synapse Administrator User GUID from Azure AD.
-    [string]$SynapseAdministratorUserGuid
+    # Provide Name for SQL Dedicated Pool.
+    [string]$SynapseDedicatedPoolName
+
+    # Provide Size for SQL Dedicated Pool.
+    [string]$SynapseDedicatedPoolSize
+
+    # GUID of AAD User who should be made as "Synapse Administrator" in Synapse RBAC Roles.
+    [string]$SynapseAADAdministratorGuid
+
+    # JSON Tags String for Synapse Workspace.
+    [string]$TagsSynapseWorkspace
+
+    # JSON Tags String for Synapse Dedicated Pool.
+    [string]$TagsSynapseDedicatedPool
 
     [string] ToStringParametersSynapse() {
         return "
 Resources:
 ----------
 Subscription ID                : $($this.SubscriptionId)
+Resource Group Name            : $($this.ResourceGroupName)
+Location                       : $($this.Location)
+Storage Account Name           : $($this.StorageAccountName)
 Synapse Workspace Name         : $($this.SynapseWorkspaceName)
 Synapse Administrator Username : $($this.SynapseAdminUsername)
 Synapse Administrator Password : $($this.SynapseAdminPassword)
-Synapse Administrator GUID     : $($this.SynapseAdministratorUserGuid)
+Dedicated Pool Name            : $($this.SynapseDedicatedPoolName)
+Dedicated Pool Size            : $($this.SynapseDedicatedPoolSize)
+Synapse AAD Administrator GUID : $($this.SynapseAADAdministratorGuid)
+Tags: Synapse Workspace        : $($this.tagsSynapseWorkspace)
+Tags: Synapse Dedicated Pool   : $($this.TagsSynapseDedicatedPool)
 "
-
     }
 }
 
@@ -39,9 +74,19 @@ class DeploymentManager {
     hidden [DateTime]$startedOn = (Get-Date)
     hidden [DateTime]$endedOn = (Get-Date)
 
-    DeploymentProcessor([string]$synapseWorkspaceName, [string]$synapseAdminUsername, [string]$synapseAdminPassword) {
+    DeploymentProcessor(
+        [string]$resourceGroupName
+        , [string]$location
+        , [string]$storageAccountName
+        , [string]$synapseWorkspaceName
+        , [string]$synapseAdminUsername
+        , [string]$synapseAdminPassword
+        , [string]$synapseDedicatedPoolName
+        , [string]$synapseDedicatedPoolSize
+        , [string]$synapseAADAdministratorGuid
+        , [string]$tagsSynapseWorkspace
+        , [string]$tagsSynapseDedicatedPool) {
         Write-Host `
-            -ForegroundColor Yellow `
             -NoNewline `
             -Object '
 +-------------------------------------------+
@@ -50,13 +95,22 @@ class DeploymentManager {
 '
 
         $this.LoginAndSetSubscription()
-        $this.ReadSynapseWorkspaceAndCredentials()
-        Clear-Host
         $this.startedOn = (Get-Date)
+
+        $this.parameters.ResourceGroupName = $resourceGroupName
+        $this.parameters.Location = $location
+        $this.parameters.StorageAccountName = $storageAccountName
         $this.parameters.SynapseWorkspaceName = $synapseWorkspaceName
         $this.parameters.SynapseAdminUsername = $synapseAdminUsername
         $this.parameters.SynapseAdminPassword = $synapseAdminPassword
+        $this.parameters.SynapseDedicatedPoolName = $synapseDedicatedPoolName
+        $this.parameters.SynapseDedicatedPoolSize = $synapseDedicatedPoolSize
+        $this.parameters.SynapseAADAdministratorGuid = $synapseAADAdministratorGuid
+        $this.parameters.TagsSynapseWorkspace = $tagsSynapseWorkspace
+        $this.parameters.TagsSynapseDedicatedPool = $tagsSynapseDedicatedPool
+        
         $this.ShowParametersSynapseOnlyInstall()
+        $this.CreateSynapseInstance()
         $this.PrepareAndUploadSynapseAssets()
         $this.endedOn = (Get-Date)
         $totalTime = $this.endedOn - $this.startedOn
@@ -77,9 +131,6 @@ class DeploymentManager {
             list `
             --only-show-errors | ConvertFrom-Json
 
-        # Set current User's ID as Synapse Administrator linked with Azure AD.
-        $this.parameters.SynapseAdministratorUserGuid = (az ad signed-in-user show | ConvertFrom-Json).id
-
         # This is scenario of ONLY 1 Subscription. Pick-up default value and use it.
         $this.parameters.SubscriptionId = $subscriptions[0].subscriptionId
     }
@@ -87,9 +138,86 @@ class DeploymentManager {
     hidden ShowParametersSynapseOnlyInstall() {
         # Show all provided values.
         Write-Host `
-            -ForegroundColor Green `
             "Provided Values: 
             $($this.parameters.ToStringParametersSynapse())"
+    }
+
+    hidden [string] GetTags([string] $tagsString) {
+        $returnValue = ''
+
+        $tagsString = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($tagsString))
+
+        $($tagsString | ConvertFrom-Json).PSObject.Properties | ForEach-Object { 
+            $returnValue = $returnValue + "'$($_.Name)=$($_.Value)' "
+        } 
+
+        return $returnValue
+    }
+
+    hidden CreateSynapseInstance() {
+        Write-Host `
+            -Object 'Creating Synapse Workspace...'
+        $commandText = "
+        az synapse workspace create ``
+            --only-show-errors ``
+            --name $($this.parameters.SynapseWorkspaceName) ``
+            --managed-rg-name mrg-$($this.parameters.SynapseWorkspaceName) ``
+            --resource-group $($this.parameters.ResourceGroupName) ``
+            --storage-account $($this.parameters.StorageAccountName) ``
+            --sql-admin-login-user $($this.parameters.SynapseAdminUsername) ``
+            --sql-admin-login-password $($this.parameters.SynapseAdminPassword) ``
+            --location $($this.parameters.Location) ``
+            --file-system $($this.parameters.SynapseWorkspaceName) ``
+            --tags $($this.GetTags($this.parameters.TagsSynapseWorkspace))"
+
+        Write-Host $commandText
+
+        Invoke-Expression $commandText
+
+        Write-Host `
+            -Object 'Opening Firewall (For Azure)...'
+        az synapse workspace firewall-rule create `
+            --only-show-errors `
+            --name AllowAllWindowsAzureIps `
+            --workspace-name $this.parameters.SynapseWorkspaceName `
+            --resource-group $this.parameters.ResourceGroupName `
+            --start-ip-address 0.0.0.0 `
+            --end-ip-address 0.0.0.0
+
+        Write-Host `
+            -Object 'Opening Firewall (For Everyone)...'
+        az synapse workspace firewall-rule create `
+            --only-show-errors `
+            --name allowAll `
+            --workspace-name $this.parameters.SynapseWorkspaceName `
+            --resource-group $this.parameters.ResourceGroupName `
+            --start-ip-address 0.0.0.0 `
+            --end-ip-address 255.255.255.255
+
+        Write-Host `
+            -Object 'Assigning "Synapse Administrator" Role...'
+        az synapse role assignment create `
+            --only-show-errors `
+            --role 'Synapse Administrator' `
+            --assignee-principal-type 'User' `
+            --workspace-name $this.parameters.SynapseWorkspaceName `
+            --assignee-object-id $this.parameters.SynapseAADAdministratorGuid
+
+        Write-Host `
+            -Object 'Creating Dedicated Pool Instance...'
+        $commandText = "
+        az synapse sql pool create ``
+            --only-show-errors ``
+            --name $($this.parameters.SynapseDedicatedPoolName) ``
+            --performance-level $($this.parameters.SynapseDedicatedPoolSize) ``
+            --workspace-name $($this.parameters.SynapseWorkspaceName) ``
+            --resource-group $($this.parameters.ResourceGroupName) ``
+            --tags $($this.GetTags($this.parameters.TagsSynapseDedicatedPool))"
+
+
+        Write-Host $commandText
+
+        Invoke-Expression $commandText
     }
 
     hidden RefreshAccessTokens() {
@@ -103,21 +231,18 @@ class DeploymentManager {
 
         try {
             Write-Host `
-                -ForegroundColor Blue `
                 -Object '
 Creating Tables in Azure Synapse...' `
             
-            SqlCmd `
-                -I `
-                -i './breeze-assets/01-sql-scripts/breeze-ddl.sql' `
-                -S "$($this.parameters.SynapseWorkspaceName).sql.azuresynapse.net" `
-                -d 'syndpbreeze' `
-                -U $this.parameters.SynapseAdminUsername `
-                -P $this.parameters.SynapseAdminPassword
+            Invoke-SqlCmd `
+                -InputFile './breeze-ddl.sql' `
+                -ServerInstance "$($this.parameters.SynapseWorkspaceName).sql.azuresynapse.net" `
+                -Database 'syndpbreeze' `
+                -Username $this.parameters.SynapseAdminUsername `
+                -Password $this.parameters.SynapseAdminPassword
         }
         catch {
             Write-Host `
-                -ForegroundColor Red `
                 -Object "An error occurred while creating DB Objects (Table and Stored Procedures) in Synapse. Error Stack: $($_)"
         }
 
@@ -126,40 +251,52 @@ Creating Tables in Azure Synapse...' `
 
         # Creating Azure Synapse Datasets.
         Write-Host `
-            -ForegroundColor Blue `
             -Object '
 Creating Datasets in Azure Synapse...'
 
         # Get list of all Datasets from Local Computer.
-        $datasets = Get-ChildItem './breeze-assets/02-datasets' | Select-Object BaseName
+        $datasets = Get-ChildItem ds*.json | Select-Object BaseName
 
         # Iterate over Datasets and create each separately.
         foreach ($currentDataset in $datasets) {
             try {
                 Write-Host `
-                    -ForegroundColor Yellow `
                     -Object "Creating Dataset: $($currentDataset.BaseName)"
 
                 # Read all file contents.
                 $fileContents = Get-Content `
                     -Raw `
-                    -Path "./breeze-assets/02-datasets/$($currentDataset.BaseName).json"
+                    -Path "./$($currentDataset.BaseName).json"
 
                 # Perform Replacements.
                 $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}', $defaultLinkedServiceNameSynapse)
                 $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_STORAGE}}', $defaultLinkedServiceNameStorage)
 
-                # Create Dataset on Azure Synapse.
-                Invoke-RestMethod `
-                    -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/datasets/$($currentDataset.BaseName)?api-version=2021-06-01" `
-                    -Method PUT `
-                    -Body $fileContents `
-                    -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
-                    -ContentType 'application/json'
+                for ($retryCounter = 1; $retryCounter -le 3; $retryCounter++) {
+                    $success = $false
+
+                    try {
+                        # Create Dataset on Azure Synapse.
+                        Invoke-RestMethod `
+                            -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/datasets/$($currentDataset.BaseName)?api-version=2021-06-01" `
+                            -Method PUT `
+                            -Body $fileContents `
+                            -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
+                            -ContentType 'application/json'
+
+                        $success = $true
+                    }
+                    catch {
+                        
+                    }
+
+                    if ($success -eq $true) {
+                        break
+                    }
+                }
             }
             catch {
                 Write-Host `
-                    -ForegroundColor Red `
                     -Object "An error occurred while publishing Dataset: $($currentDataset.BaseName). Error Stack: $($_)"
             }
         }
@@ -169,24 +306,22 @@ Creating Datasets in Azure Synapse...'
 
         # Creating Azure Synapse Notebooks.
         Write-Host `
-            -ForegroundColor Blue `
             -Object '
 Creating Notebooks in Azure Synapse...'
 
         # Get list of all Notebooks from Local Computer.
-        $notebooks = Get-ChildItem './breeze-assets/03-notebooks' | Select-Object BaseName
+        $notebooks = Get-ChildItem *.ipynb | Select-Object BaseName
 
         # Iterate over Notebooks and create each separately.
         foreach ($currentNotebook in $notebooks) {
             try {
                 Write-Host `
-                    -ForegroundColor Yellow `
                     -Object "Creating Notebook: $($currentNotebook.BaseName)"
 
                 # Read all file contents.
                 $fileContents = Get-Content `
                     -Raw `
-                    -Path "./breeze-assets/03-notebooks/$($currentNotebook.BaseName).ipynb"
+                    -Path "./$($currentNotebook.BaseName).ipynb"
 
                 # Perform Replacements.
                 $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}', $defaultLinkedServiceNameSynapse)
@@ -195,17 +330,29 @@ Creating Notebooks in Azure Synapse...'
                 $fileContents = $fileContents.Replace('{{BREEZE_ADMIN_USERNAME}}', $this.parameters.SynapseAdminUsername)
                 $fileContents = $fileContents.Replace('{{BREEZE_ADMIN_PASSWORD}}', $this.parameters.SynapseAdminPassword)
 
-                # Create Notebook on Azure Synapse.
-                Invoke-RestMethod `
-                    -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/notebooks/$($currentNotebook.BaseName)?api-version=2021-06-01" `
-                    -Method PUT `
-                    -Body $fileContents `
-                    -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
-                    -ContentType 'application/json'
+                for ($retryCounter = 1; $retryCounter -le 3; $retryCounter++) {
+                    $success = $false
+
+                    try {
+                        # Create Notebook on Azure Synapse.
+                        Invoke-RestMethod `
+                            -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/notebooks/$($currentNotebook.BaseName)?api-version=2021-06-01" `
+                            -Method PUT `
+                            -Body $fileContents `
+                            -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
+                            -ContentType 'application/json'
+                    }
+                    catch {
+                        
+                    }
+
+                    if ($success -eq $true) {
+                        break
+                    }
+                }
             }
             catch {
                 Write-Host `
-                    -ForegroundColor Red `
                     -Object "An error occurred while publishing Notebook: $($currentNotebook.BaseName). Error Stack: $($_)"
             }
         }
@@ -215,40 +362,50 @@ Creating Notebooks in Azure Synapse...'
 
         # Creating Azure Synapse Pipelines.
         Write-Host `
-            -ForegroundColor Blue `
             -Object '
 Creating Pipelines in Azure Synapse...'
 
         # Get list of all Pipelines from Local Computer.
-        $pipelines = Get-ChildItem './breeze-assets/04-pipelines' | Select-Object BaseName
+        $pipelines = Get-ChildItem p*.json | Select-Object BaseName
 
         # Iterate over Pipelines and create each separately.
         foreach ($currentPipeline in $pipelines) {
             try {
                 Write-Host `
-                    -ForegroundColor Yellow `
                     "Creating Pipeline: $($currentPipeline.BaseName)"
 
                 # Read all file contents.
                 $fileContents = Get-Content `
                     -Raw `
-                    -Path "./breeze-assets/04-pipelines/$($currentPipeline.BaseName).json"
+                    -Path "./$($currentPipeline.BaseName).json"
 
                 # Perform Replacements.
                 $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}', $defaultLinkedServiceNameSynapse)
                 $fileContents = $fileContents.Replace('{{DEFAULT_LINKED_SERVICE_NAME_STORAGE}}', $defaultLinkedServiceNameStorage)
 
-                # Create Pipeline on Azure Synapse.
-                Invoke-RestMethod `
-                    -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/pipelines/$($currentPipeline.BaseName)?api-version=2021-06-01" `
-                    -Method PUT `
-                    -Body $fileContents `
-                    -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
-                    -ContentType 'application/json'
+                for ($retryCounter = 1; $retryCounter -le 3; $retryCounter++) {
+                    $success = $false
+
+                    try {
+                        # Create Pipeline on Azure Synapse.
+                        Invoke-RestMethod `
+                            -Uri "https://$($this.parameters.SynapseWorkspaceName).dev.azuresynapse.net/pipelines/$($currentPipeline.BaseName)?api-version=2021-06-01" `
+                            -Method PUT `
+                            -Body $fileContents `
+                            -Headers @{ Authorization = "Bearer $($this.accessTokenSynapse)" } `
+                            -ContentType 'application/json'
+                    }
+                    catch {
+                        
+                    }
+
+                    if ($success -eq $true) {
+                        break
+                    }
+                }
             }
             catch {
                 Write-Host `
-                    -ForegroundColor Red `
                     -Object "An error occurred while publishing Pipeline: $($currentPipeline.BaseName). Error Stack: $($_)"
             }
         }
@@ -256,4 +413,16 @@ Creating Pipelines in Azure Synapse...'
 }
 
 [DeploymentManager]$deployer = [DeploymentManager]::new()
-$deployer.DeploymentProcessor($synapseWorkspaceName, $synapseAdminUsername, $synapseAdminPassword)
+$deployer.DeploymentProcessor(
+    $resourceGroupName
+    , $location
+    , $storageAccountName
+    , $synapseWorkspaceName
+    , $synapseAdminUsername
+    , $synapseAdminPassword
+    , $synapseDedicatedPoolName
+    , $synapseDedicatedPoolSize
+    , $synapseAADAdministratorGuid
+    , $tagsSynapseWorkspace
+    , $tagsSynapseDedicatedPool
+)

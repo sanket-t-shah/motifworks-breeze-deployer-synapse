@@ -90,7 +90,6 @@
   "variables": {
     "folderNameNestedTemplates": "nestedtemplates/",
     "templateUrlStorageAccount": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'storage-account.json', parameters('_artifactsLocationSasToken')))]",
-    "templateUrlSynapse": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'synapse.json', parameters('_artifactsLocationSasToken')))]",
     "templateUrlVirtualMachineVnet": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-vnet.json', parameters('_artifactsLocationSasToken')))]",
     "templateUrlVirtualMachineNsg": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-nsg.json', parameters('_artifactsLocationSasToken')))]",
     "templateUrlVirtualMachinePublicIP": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-public-ip.json', parameters('_artifactsLocationSasToken')))]",
@@ -154,49 +153,6 @@
           },
           "breezeSynapseStorageAccountName": {
             "value": "[parameters('breezeSynapseStorageAccountName')]"
-          }
-        }
-      }
-    },
-    {
-      "name": "synapse",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
-      "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'storage_account')]"
-      ],
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('templateUrlSynapse')]"
-        },
-        "parameters": {
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "breezeResourceGroupName": {
-            "value": "[resourceGroup().name]"
-          },
-          "breezeTagValues": {
-            "value": "[parameters('breezeTagValues')]"
-          },
-          "breezeSynapseWorkspaceName": {
-            "value": "[parameters('breezeSynapseWorkspaceName')]"
-          },
-          "breezeSynapseSqlPoolDedicatedSku": {
-            "value": "[parameters('breezeSynapseSqlPoolDedicatedSku')]"
-          },
-          "breezeSynapseAdminUsername": {
-            "value": "[parameters('breezeSynapseAdminUsername')]"
-          },
-          "breezeSynapseAdminPassword": {
-            "value": "[parameters('breezeSynapseAdminPassword')]"
-          },
-          "breezeSynapseStorageAccountName": {
-            "value": "[parameters('breezeSynapseStorageAccountName')]"
-          },
-          "breezeSynapseAdministratorUserGuid": {
-            "value": "[parameters('breezeSynapseAdministratorUserGuid')]"
           }
         }
       }
@@ -363,7 +319,7 @@
       "apiVersion": "2022-09-01",
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', 'virtual_machine')]",
-        "[resourceId('Microsoft.Resources/deployments', 'synapse')]"
+        "[resourceId('Microsoft.Resources/deployments', 'storage_account')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -377,8 +333,17 @@
           "breezeTagValues": {
             "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Compute/virtualMachines/extensions'), parameters('breezeTagValues')['Microsoft.Compute/virtualMachines/extensions'], json('{}')) ]"
           },
+          "breezeTagValuesSynapseWorkspace": {
+            "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Synapse/workspaces'), base64(string(parameters('breezeTagValues')['Microsoft.Synapse/workspaces'])), base64(string(json('{}')))) ]"
+          },
+          "breezeTagValuesSynapseDedicatedPool": {
+            "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Synapse/workspaces/sqlPools'), base64(string(parameters('breezeTagValues')['Microsoft.Synapse/workspaces/sqlPools'])), base64(string(json('{}')))) ]"
+          },
           "virtualMachineName": {
             "value": "[variables('virtualMachineName')]"
+          },
+          "breezeSynapseStorageAccountName": {
+            "value": "[parameters('breezeSynapseStorageAccountName')]"
           },
           "synapseWorkspaceName": {
             "value": "[parameters('breezeSynapseWorkspaceName')]"
@@ -388,6 +353,12 @@
           },
           "synapseWorkspacePassword": {
             "value": "[parameters('breezeSynapseAdminPassword')]"
+          },
+          "breezeSynapseSqlPoolDedicatedSku": {
+            "value": "[parameters('breezeSynapseSqlPoolDedicatedSku')]"
+          },
+          "breezeSynapseAdministratorUserGuid": {
+            "value": "[parameters('breezeSynapseAdministratorUserGuid')]"
           },
           "pathVirtualMachineScriptBash": {
             "value": "[variables('pathVirtualMachineScriptBash')]"

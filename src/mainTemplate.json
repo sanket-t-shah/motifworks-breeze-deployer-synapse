@@ -88,7 +88,7 @@
     }
   },
   "variables": {
-    "folderNameNestedTemplates": "nested-templates/",
+    "folderNameNestedTemplates": "nestedtemplates/",
     "templateUrlStorageAccount": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'storage-account.json', parameters('_artifactsLocationSasToken')))]",
     "templateUrlSynapse": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'synapse.json', parameters('_artifactsLocationSasToken')))]",
     "templateUrlVirtualMachineVnet": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-vnet.json', parameters('_artifactsLocationSasToken')))]",

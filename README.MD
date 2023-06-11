@@ -37,7 +37,7 @@ You are all welcome for this. It is a two-step process:
 1. Deploy Template (click link below)
 2. Run PowerShell Script - `src/deployer.ps1` and select Option 2. You'll need to put in your values that you provided earlier in Step 1 above.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fgithub.com%2Fsanket-t-shah%2Fmotifworks-breeze-deployer-synapse%2Fraw%2Fmain%2Fsrc%2FmainTemplate.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fgithub.com%2Fsanket-t-shah%2Fmotifworks-breeze-deployer-synapse%2Fraw%2Fmain%2Fsrc%2FazureDeploy.json)
 
 # I want to say thanks!!!
 I would love to hear it along with good comments and obviously necessary feedback. Drop me a note on my personal Email ID.

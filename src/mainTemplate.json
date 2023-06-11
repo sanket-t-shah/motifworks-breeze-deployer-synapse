@@ -95,6 +95,7 @@
     "templateUrlVirtualMachinePublicIP": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-public-ip.json', parameters('_artifactsLocationSasToken')))]",
     "templateUrlVirtualMachineNIC": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-nic.json', parameters('_artifactsLocationSasToken')))]",
     "templateUrlVirtualMachine": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine.json', parameters('_artifactsLocationSasToken')))]",
+    "templateUrlVirtualMachineRoleAssignment": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-role-assignment.json', parameters('_artifactsLocationSasToken')))]",
     "templateUrlVirtualMachineExtension": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-extension.json', parameters('_artifactsLocationSasToken')))]",
     "virtualMachineVnetName": "vnet-breeze-deployer",
     "virtualMachineVnetSubnetName": "snet-breeze-deployer",
@@ -314,12 +315,31 @@
       }
     },
     {
+      "name": "virtual_machine_role_assignment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "dependsOn": [
+        "virtual_machine"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('templateUrlVirtualMachineRoleAssignment')]"
+        },
+        "parameters": {
+          "virtualMachineName": {
+            "value": "[variables('virtualMachineName')]"
+          }
+        }
+      }
+    },
+    {
       "name": "virtual_machine_extension",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'virtual_machine')]",
-        "[resourceId('Microsoft.Resources/deployments', 'storage_account')]"
+        "virtual_machine",
+        "storage_account"
       ],
       "properties": {
         "mode": "Incremental",

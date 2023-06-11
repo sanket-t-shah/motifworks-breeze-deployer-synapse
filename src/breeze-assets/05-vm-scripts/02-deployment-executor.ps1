@@ -234,7 +234,7 @@ class DeploymentManager {
                 -Object '
 Creating Tables in Azure Synapse...' `
             
-            Invoke-SqlCmd `
+            Invoke-Sqlcmd `
                 -InputFile './breeze-ddl.sql' `
                 -ServerInstance "$($this.parameters.SynapseWorkspaceName).sql.azuresynapse.net" `
                 -Database 'syndpbreeze' `

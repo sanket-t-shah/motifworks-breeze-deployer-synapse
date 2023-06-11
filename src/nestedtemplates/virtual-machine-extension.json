@@ -79,7 +79,7 @@
         }
     },
     "variables": {
-        "scriptArgs": "[concat('-a \"', resourceGroup().name, '\" -b \"', resourceGroup().location, '\" -c \"', parameters('breezeSynapseStorageAccountName'), '\" -d \"', parameters('synapseWorkspaceName'), '\" -e \"', parameters('synapseWorkspaceUsername'), '\" -f \"', parameters('synapseWorkspacePassword'),'\" -g \"syndpbreeze\" -h \"', parameters('breezeSynapseSqlPoolDedicatedSku'), '\" -i \"', parameters('breezeSynapseAdministratorUserGuid'), '\" -j \"', parameters('breezeTagValuesSynapseWorkspace'), '\" -k \"', parameters('breezeTagValuesSynapseDedicatedPool'), '\"')]"
+        "scriptArgs": "[concat('-a \"', resourceGroup().name, '\" -b \"', parameters('location'), '\" -c \"', parameters('breezeSynapseStorageAccountName'), '\" -d \"', parameters('synapseWorkspaceName'), '\" -e \"', parameters('synapseWorkspaceUsername'), '\" -f \"', parameters('synapseWorkspacePassword'),'\" -g \"syndpbreeze\" -h \"', parameters('breezeSynapseSqlPoolDedicatedSku'), '\" -i \"', parameters('breezeSynapseAdministratorUserGuid'), '\" -j \"', parameters('breezeTagValuesSynapseWorkspace'), '\" -k \"', parameters('breezeTagValuesSynapseDedicatedPool'), '\"')]"
     },
     "resources": [
         {

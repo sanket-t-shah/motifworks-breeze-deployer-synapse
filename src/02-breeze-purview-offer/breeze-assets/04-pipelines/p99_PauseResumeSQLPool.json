@@ -1,0 +1,102 @@
+{
+    "name": "p99_PauseResumeSQLPool",
+    "properties": {
+        "activities": [
+            {
+                "name": "Resume Paused Dedicated SQL Pool",
+                "type": "WebActivity",
+                "dependsOn": [
+                    {
+                        "activity": "Get Subscription ID",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": {
+                        "value": "@concat(variables('BaseURL'),activity('Get Subscription ID').output.value[0].id,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().DataFactory,'/sqlPools/',pipeline().parameters.SQLPoolName,'/',toLower(pipeline().parameters.Task),'?api-version=2021-06-01')",
+                        "type": "Expression"
+                    },
+                    "connectVia": {
+                        "referenceName": "AutoResolveIntegrationRuntime",
+                        "type": "IntegrationRuntimeReference"
+                    },
+                    "method": "POST",
+                    "body": {
+                        "value": "@string('{}')",
+                        "type": "Expression"
+                    },
+                    "authentication": {
+                        "type": "MSI",
+                        "resource": {
+                            "value": "@variables('BaseURL')",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Get Subscription ID",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": {
+                        "value": "@concat(variables('BaseURL'),'/subscriptions?api-version=2020-06-01')",
+                        "type": "Expression"
+                    },
+                    "connectVia": {
+                        "referenceName": "AutoResolveIntegrationRuntime",
+                        "type": "IntegrationRuntimeReference"
+                    },
+                    "method": "GET",
+                    "authentication": {
+                        "type": "MSI",
+                        "resource": {
+                            "value": "@variables('BaseURL')",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "ResourceGroup": {
+                "type": "string"
+            },
+            "SQLPoolName": {
+                "type": "string"
+            },
+            "Task": {
+                "type": "string"
+            }
+        },
+        "variables": {
+            "BaseURL": {
+                "type": "String",
+                "defaultValue": "https://management.azure.com"
+            }
+        },
+        "folder": {
+            "name": "99-maintenance"
+        },
+        "annotations": []
+    },
+    "type": "Microsoft.Synapse/workspaces/pipelines"
+}

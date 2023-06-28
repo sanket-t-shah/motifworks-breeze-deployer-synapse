@@ -1,0 +1,189 @@
+{
+    "name": "p31_ExecuteRequiredSPs",
+    "properties": {
+        "description": "This Pipeline aims to load all Data for selected Tables from Staging Tables to Data Warehouse.",
+        "activities": [
+            {
+                "name": "Get SP Execution Order",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Set Batch ID",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[breeze].[usp_Get_ADFProcList]",
+                        "storedProcedureParameters": {
+                            "ExecOrder": {
+                                "type": "String",
+                                "value": null
+                            },
+                            "GetWhat": {
+                                "type": "String",
+                                "value": "execorder"
+                            },
+                            "LoadType": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.LoadType",
+                                    "type": "Expression"
+                                }
+                            },
+                            "ProcList": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.ProcList",
+                                    "type": "Expression"
+                                }
+                            },
+                            "RunType": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.RunType",
+                                    "type": "Expression"
+                                }
+                            },
+                            "SourceSystem": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.SourceSystem",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "ds_breeze",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "For Each SP Execution Order",
+                "description": "This activity will iterate SEQUENTIALLY for each exec order.",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Get SP Execution Order",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Get SP Execution Order').output.value",
+                        "type": "Expression"
+                    },
+                    "isSequential": true,
+                    "activities": [
+                        {
+                            "name": "Execute SP For Execution Order",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "p32_ExecuteProcsForOneExecOrder",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "ParentBatchId": {
+                                        "value": "@pipeline().parameters.ParentBatchId",
+                                        "type": "Expression"
+                                    },
+                                    "SourceSystem": {
+                                        "value": "@pipeline().parameters.SourceSystem",
+                                        "type": "Expression"
+                                    },
+                                    "LoadType": {
+                                        "value": "@pipeline().parameters.LoadType",
+                                        "type": "Expression"
+                                    },
+                                    "ProcList": {
+                                        "value": "@pipeline().parameters.ProcList",
+                                        "type": "Expression"
+                                    },
+                                    "RunType": {
+                                        "value": "@pipeline().parameters.RunType",
+                                        "type": "Expression"
+                                    },
+                                    "ExecOrder": {
+                                        "value": "@item().ExecOrder",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Set Batch ID",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "BatchId",
+                    "value": {
+                        "value": "@pipeline().parameters.ParentBatchId",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "ParentBatchId": {
+                "type": "string",
+                "defaultValue": "0"
+            },
+            "SourceSystem": {
+                "type": "string",
+                "defaultValue": "adls"
+            },
+            "LoadType": {
+                "type": "string",
+                "defaultValue": "lookup"
+            },
+            "ProcList": {
+                "type": "string"
+            },
+            "RunType": {
+                "type": "string",
+                "defaultValue": "new"
+            }
+        },
+        "variables": {
+            "BatchId": {
+                "type": "String"
+            },
+            "BatchRunStatus": {
+                "type": "String",
+                "defaultValue": "0"
+            }
+        },
+        "folder": {
+            "name": "03-dw-processing"
+        },
+        "annotations": []
+    },
+    "type": "Microsoft.Synapse/workspaces/pipelines"
+}

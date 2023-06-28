@@ -1,0 +1,327 @@
+{
+    "name": "p32_ExecuteProcsForOneExecOrder",
+    "properties": {
+        "description": "This Pipeline queries the ADFStoredProcList Table and executes all the Stored Procedures for a given exec order in parallel.",
+        "activities": [
+            {
+                "name": "Get Stored Procedures List",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Set Batch ID",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[breeze].[usp_Get_ADFProcList]",
+                        "storedProcedureParameters": {
+                            "ExecOrder": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.ExecOrder",
+                                    "type": "Expression"
+                                }
+                            },
+                            "GetWhat": {
+                                "type": "String",
+                                "value": "proclist"
+                            },
+                            "LoadType": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.LoadType",
+                                    "type": "Expression"
+                                }
+                            },
+                            "ProcList": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.ProcList",
+                                    "type": "Expression"
+                                }
+                            },
+                            "RunType": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.RunType",
+                                    "type": "Expression"
+                                }
+                            },
+                            "SourceSystem": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.SourceSystem",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "ds_breeze",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "For Each Stored Procedure",
+                "description": "This activity will iterate and execute Stored Procesures in parallel.",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Get Stored Procedures List",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Get Stored Procedures List').output.value",
+                        "type": "Expression"
+                    },
+                    "batchCount": 20,
+                    "activities": [
+                        {
+                            "name": "Audit SP Run Success",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Exec SP Synapse SQL",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_AdfStoredProcList_UpdateRunStatus]",
+                                "storedProcedureParameters": {
+                                    "LastAdfRunDate": {
+                                        "value": {
+                                            "value": "@utcnow()",
+                                            "type": "Expression"
+                                        },
+                                        "type": "DateTime"
+                                    },
+                                    "LoadType": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.LoadType",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "RunStatus": {
+                                        "value": "Passed",
+                                        "type": "String"
+                                    },
+                                    "StoredProcedureName": {
+                                        "value": {
+                                            "value": "@item().StoredProcedureName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@int(variables('BatchId'))",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Audit SP Run Failed",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Exec SP Synapse SQL",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_AdfStoredProcList_UpdateRunStatus]",
+                                "storedProcedureParameters": {
+                                    "LastAdfRunDate": {
+                                        "value": {
+                                            "value": "@utcnow()",
+                                            "type": "Expression"
+                                        },
+                                        "type": "DateTime"
+                                    },
+                                    "LoadType": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.LoadType",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "RunStatus": {
+                                        "value": "Failed",
+                                        "type": "String"
+                                    },
+                                    "StoredProcedureName": {
+                                        "value": {
+                                            "value": "@item().StoredProcedureName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@int(variables('BatchId'))",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@pipeline().parameters.SourceSystem",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Exec SP Synapse SQL",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": {
+                                    "value": "@concat('dbo.',item().StoredProcedureName)",
+                                    "type": "Expression"
+                                },
+                                "storedProcedureParameters": {
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference",
+                                "parameters": {
+                                    "DBName": "syndpbreeze"
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Set Batch ID",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "BatchId",
+                    "value": {
+                        "value": "@pipeline().parameters.ParentBatchId",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "ParentBatchId": {
+                "type": "string",
+                "defaultValue": "0"
+            },
+            "SourceSystem": {
+                "type": "string",
+                "defaultValue": "netsuite"
+            },
+            "LoadType": {
+                "type": "string",
+                "defaultValue": "lookup"
+            },
+            "ProcList": {
+                "type": "string"
+            },
+            "RunType": {
+                "type": "string",
+                "defaultValue": "new"
+            },
+            "ExecOrder": {
+                "type": "string",
+                "defaultValue": "1"
+            }
+        },
+        "variables": {
+            "BatchId": {
+                "type": "String"
+            },
+            "BatchRunStatus": {
+                "type": "String"
+            }
+        },
+        "folder": {
+            "name": "03-dw-processing"
+        },
+        "annotations": []
+    },
+    "type": "Microsoft.Synapse/workspaces/pipelines"
+}

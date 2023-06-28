@@ -1,0 +1,16 @@
+{
+    "name": "ds_breeze",
+    "properties": {
+        "annotations": [],
+        "type": "SqlPoolTable",
+        "schema": [],
+        "typeProperties": {
+            "schema": "breeze",
+            "table": "ADFConfigTableList"
+        },
+        "sqlPool": {
+            "referenceName": "syndpbreeze",
+            "type": "SqlPoolReference"
+        }
+    }
+}

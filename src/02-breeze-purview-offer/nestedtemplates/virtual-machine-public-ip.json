@@ -1,0 +1,38 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "breezeTagValues": {
+            "type": "object"
+        },
+        "virtualMachineName": {
+            "type": "string"
+        },
+        "virtualMachinePublicIPName": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2022-07-01",
+            "name": "[parameters('virtualMachinePublicIPName')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "sku": {
+                "name": "Basic"
+            },
+            "properties": {
+                "deleteOption": "Delete",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('virtualMachineName')]"
+                },
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        }
+    ]
+}

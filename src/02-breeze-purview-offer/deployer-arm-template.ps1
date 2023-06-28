@@ -1,4 +1,4 @@
-$location = 'eastus2'
+$location = 'eastus'
 $resourceGroupName = 'rg-breeze-dev'
 
 $commandText = "

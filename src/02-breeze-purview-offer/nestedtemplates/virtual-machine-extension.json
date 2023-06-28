@@ -1,0 +1,126 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "breezeTagValues": {
+            "type": "object"
+        },
+        "breezeTagValuesSynapseWorkspace": {
+            "type": "string"
+        },
+        "breezeTagValuesSynapseDedicatedPool": {
+            "type": "string"
+        },
+        "breezeTagValuesPurviewAccount": {
+            "type": "string"
+        },
+        "purviewAccountName": {
+            "type": "string"
+        },
+        "virtualMachineName": {
+            "type": "string"
+        },
+        "breezeSynapseStorageAccountName": {
+            "type": "string"
+        },
+        "synapseWorkspaceName": {
+            "type": "string"
+        },
+        "synapseWorkspaceUsername": {
+            "type": "string"
+        },
+        "synapseWorkspacePassword": {
+            "type": "securestring"
+        },
+        "breezeSynapseSqlPoolDedicatedSku": {
+            "type": "string"
+        },
+        "breezeSynapseAdministratorUserGuid": {
+            "type": "string"
+        },
+        "pathVirtualMachineScriptBash": {
+            "type": "string"
+        },
+        "pathVirtualMachineScriptPowerShell": {
+            "type": "string"
+        },
+        "path01BreezeSqlScript": {
+            "type": "string"
+        },
+        "path02DatasetADLSParquet": {
+            "type": "string"
+        },
+        "path02DatasetBreeze": {
+            "type": "string"
+        },
+        "path03AdlsDataCuration": {
+            "type": "string"
+        },
+        "path04p00MasterPipeline": {
+            "type": "string"
+        },
+        "path04p10LoadSourceDataToAdls": {
+            "type": "string"
+        },
+        "path04p20AdlsDataCuration": {
+            "type": "string"
+        },
+        "path04p30ProcessStageToDW": {
+            "type": "string"
+        },
+        "path04p31ExecuteRequiredSPs": {
+            "type": "string"
+        },
+        "path04p32ExecuteProcsForOneExecOrder": {
+            "type": "string"
+        },
+        "path04p40ArchiveDataToADLS": {
+            "type": "string"
+        },
+        "path04p99PauseResumeSQLPool": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "scriptArgs": "[concat('-a \"', resourceGroup().name, '\" -b \"', parameters('location'), '\" -c \"', parameters('breezeSynapseStorageAccountName'), '\" -d \"', parameters('synapseWorkspaceName'), '\" -e \"', parameters('synapseWorkspaceUsername'), '\" -f \"', parameters('synapseWorkspacePassword'),'\" -g \"syndpbreeze\" -h \"', parameters('breezeSynapseSqlPoolDedicatedSku'), '\" -i \"', parameters('breezeSynapseAdministratorUserGuid'), '\" -j \"', parameters('purviewAccountName'), '\" -k \"', parameters('breezeTagValuesSynapseWorkspace'), '\" -l \"', parameters('breezeTagValuesSynapseDedicatedPool'), '\" -m \"', parameters('breezeTagValuesPurviewAccount'), '\"')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2022-11-01",
+            "name": "[concat(parameters('virtualMachineName'),'/installcustomscript')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.1",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "[parameters('pathVirtualMachineScriptBash')]",
+                        "[parameters('pathVirtualMachineScriptPowerShell')]",
+                        "[parameters('path01BreezeSqlScript')]",
+                        "[parameters('path02DatasetADLSParquet')]",
+                        "[parameters('path02DatasetBreeze')]",
+                        "[parameters('path04p00MasterPipeline')]",
+                        "[parameters('path04p10LoadSourceDataToAdls')]",
+                        "[parameters('path04p20AdlsDataCuration')]",
+                        "[parameters('path04p30ProcessStageToDW')]",
+                        "[parameters('path04p31ExecuteRequiredSPs')]",
+                        "[parameters('path04p32ExecuteProcsForOneExecOrder')]",
+                        "[parameters('path04p40ArchiveDataToADLS')]",
+                        "[parameters('path04p99PauseResumeSQLPool')]",
+                        "[parameters('path03AdlsDataCuration')]"
+                    ]
+                },
+                "protectedSettings": {
+                    "commandToExecute": "[concat('bash 01-deployment-kicker.sh ', variables('scriptArgs'))]"
+                }
+            }
+        }
+    ]
+}

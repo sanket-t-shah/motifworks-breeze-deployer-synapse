@@ -1,0 +1,47 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "breezeTagValues": {
+            "type": "object"
+        },
+        "virtualMachineVnetName": {
+            "type": "string"
+        },
+        "virtualMachineVnetAddressPrefix": {
+            "type": "string"
+        },
+        "virtualMachineVnetSubnetName": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2022-07-01",
+            "name": "[parameters('virtualMachineVnetName')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('virtualMachineVnetAddressPrefix')]"
+                    ]
+                },
+                "enableDdosProtection": false,
+                "enableVmProtection": false,
+                "subnets": [
+                    {
+                        "name": "[parameters('virtualMachineVnetSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('virtualMachineVnetAddressPrefix')]"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

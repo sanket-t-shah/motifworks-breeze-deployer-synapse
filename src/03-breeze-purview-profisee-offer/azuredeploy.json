@@ -1,0 +1,622 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "All Resources - Location."
+            },
+            "minLength": 2
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+            },
+            "defaultValue": "[deployment().properties.templateLink.uri]"
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated."
+            },
+            "defaultValue": ""
+        },
+        "breezeTagValues": {
+            "type": "object",
+            "metadata": {
+                "description": "JSON Object for Tags you wish to apply on applicable resources."
+            }
+        },
+        "breezeSynapseStorageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Storage Account Name to be used as Data Lake with Synapse."
+            }
+        },
+        "breezeSynapseWorkspaceName": {
+            "type": "string",
+            "metadata": {
+                "description": "Synapse - Workspace Name."
+            }
+        },
+        "breezeSynapseSqlPoolDedicatedSku": {
+            "type": "string",
+            "defaultValue": "DW100c",
+            "metadata": {
+                "description": "Synapse - Dedicated Pool SKU."
+            }
+        },
+        "breezeSynapseAdminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Synapse - BREEZE Framework Username."
+            }
+        },
+        "breezeSynapseAdminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Synapse - BREEZE Framework Password."
+            }
+        },
+        "breezeSynapseAdministratorUserGuid": {
+            "type": "string",
+            "metadata": {
+                "description": "Synapse - Azure AD Linked User GUID (probably your own GUID) to be assigned as Synapse Administrator."
+            }
+        },
+        "breezePurviewAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Purview - Account Name."
+            }
+        },
+        "breezeDeployerVnetAddressPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Virtual Machine - Virtual Network CIDR."
+            },
+            "minLength": 2
+        },
+        "subnetAddressPrefixVirtualMachine": {
+            "type": "string",
+            "metadata": {
+                "description": "Virtual Machine - Subnet CIDR - Deployer VM."
+            },
+            "minLength": 2
+        },
+        "subnetAddressPrefixProfiseeAks": {
+            "type": "string",
+            "metadata": {
+                "description": "Virtual Machine - Subnet CIDR - AKS."
+            },
+            "minLength": 2
+        },
+        "breezeDeployerVirtualMachineUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Virtual Machine - Username."
+            }
+        },
+        "breezeDeployerVirtualMachinePassword": {
+            "type": "secureString",
+            "metadata": {
+                "description": "Virtual Machine - Password."
+            }
+        },
+        "profiseeAksClusterName": {
+            "type": "string"
+        },
+        "profiseeAksDnsPrefix": {
+            "type": "string"
+        },
+        "profiseeAksServiceCidr": {
+            "type": "string"
+        },
+        "profiseeAksDnsServiceIP": {
+            "type": "string"
+        },
+        "profiseeAksWindowsUsername": {
+            "type": "string"
+        },
+        "profiseeAksWindowsPassword": {
+            "type": "securestring"
+        },
+        "profiseeSqlServerName": {
+            "type": "string"
+        },
+        "profiseeSqlUsername": {
+            "type": "string"
+        },
+        "profiseeSqlPassword": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "folderNameNestedTemplates": "nestedtemplates/",
+        "templateUrlStorageAccount": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'storage-account.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlVirtualMachineVnet": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-network.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlVirtualMachineNsg": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-nsg.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlPublicIPVirtualMachine": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-public-ip.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlPublicIPProfiseeAksLoadBalancer": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'profisee-public-ip-load-balancer.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlPublicIPProfiseeAksNginx": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'profisee-public-ip-nginx.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlVirtualMachineNIC": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-nic.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlVirtualMachine": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlVirtualMachineRoleAssignment": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-role-assignment.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlVirtualMachineExtension": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'virtual-machine-extension.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlProfiseeSql": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'profisee-sql-server.json', parameters('_artifactsLocationSasToken')))]",
+        "templateUrlProfiseeAks": "[uri(parameters('_artifactsLocation'), concat(variables('folderNameNestedTemplates'), 'profisee-aks.json', parameters('_artifactsLocationSasToken')))]",
+        "virtualNetworkName": "vnet-breeze-deployer",
+        "subnetNameVirtualMachine": "snet-breeze-deployer",
+        "subnetNameProfiseeAKS": "snet-breeze-aks",
+        "virtualMachineNSGName": "nsg-breeze-deployer",
+        "virtualMachineNICName": "nic-breeze-deployer",
+        "virtualMachineName": "vm-breeze-deployer",
+        "publicIPNameVirtualMachine": "pip-breeze-deployer",
+        "publicIPNameProfiseeAksLoadBalancer": "pip-profisee-aks-lb",
+        "publicIPNameProfiseeAksNginx": "pip-profisee-nginx",
+        "virtualMachineDiskName": "vm-disk-breeze-deployer",
+        "virtualMachineSize": "Standard_DS1_v2",
+        "pathVirtualMachineScriptBash": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/05-vm-scripts/01-deployment-kicker.sh', parameters('_artifactsLocationSasToken')))]",
+        "pathVirtualMachineScriptPowerShell": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/05-vm-scripts/02-deployment-executor.ps1', parameters('_artifactsLocationSasToken')))]",
+        "path01BreezeSqlScript": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/01-sql-scripts/breeze-ddl.sql', parameters('_artifactsLocationSasToken')))]",
+        "path02DatasetADLSParquet": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/02-datasets/ds_adls_parquet.json', parameters('_artifactsLocationSasToken')))]",
+        "path02DatasetBreeze": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/02-datasets/ds_breeze.json', parameters('_artifactsLocationSasToken')))]",
+        "path03AdlsDataCuration": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/03-notebooks/AdlsDataCuration.ipynb', parameters('_artifactsLocationSasToken')))]",
+        "path04p00MasterPipeline": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/04-pipelines/p00_MasterPipeline.json', parameters('_artifactsLocationSasToken')))]",
+        "path04p10LoadSourceDataToAdls": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/04-pipelines/p10_LoadSourceDataToAdls.json', parameters('_artifactsLocationSasToken')))]",
+        "path04p20AdlsDataCuration": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/04-pipelines/p20_AdlsDataCuration.json', parameters('_artifactsLocationSasToken')))]",
+        "path04p30ProcessStageToDW": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/04-pipelines/p30_ProcessStageToDW.json', parameters('_artifactsLocationSasToken')))]",
+        "path04p31ExecuteRequiredSPs": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/04-pipelines/p31_ExecuteRequiredSPs.json', parameters('_artifactsLocationSasToken')))]",
+        "path04p32ExecuteProcsForOneExecOrder": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/04-pipelines/p32_ExecuteProcsForOneExecOrder.json', parameters('_artifactsLocationSasToken')))]",
+        "path04p40ArchiveDataToADLS": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/04-pipelines/p40_ArchiveDataToADLS.json', parameters('_artifactsLocationSasToken')))]",
+        "path04p99PauseResumeSQLPool": "[uri(parameters('_artifactsLocation'), concat('breeze-assets/04-pipelines/p99_PauseResumeSQLPool.json', parameters('_artifactsLocationSasToken')))]"
+    },
+    "resources": [
+        {
+            "name": "pid-2fbba5ec-8437-44a1-9875-5c1564b4237a-partnercenter",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "resources": [
+
+                    ]
+                }
+            }
+        },
+        {
+            "name": "storage_account",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlStorageAccount')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Storage/storageAccounts'), parameters('breezeTagValues')['Microsoft.Storage/storageAccounts'], json('{}')) ]"
+                    },
+                    "breezeSynapseStorageAccountName": {
+                        "value": "[parameters('breezeSynapseStorageAccountName')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "vnet",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlVirtualMachineVnet')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/virtualNetworks'), parameters('breezeTagValues')['Microsoft.Network/virtualNetworks'], json('{}')) ]"
+                    },
+                    "virtualNetworkName": {
+                        "value": "[variables('virtualNetworkName')]"
+                    },
+                    "virtualNetworkAddressPrefix": {
+                        "value": "[parameters('breezeDeployerVnetAddressPrefix')]"
+                    },
+                    "subnetNameVirtualMachine": {
+                        "value": "[variables('subnetNameVirtualMachine')]"
+                    },
+                    "subnetNameProfiseeAks": {
+                        "value": "[variables('subnetNameProfiseeAks')]"
+                    },
+                    "subnetAddressPrefixVirtualMachine": {
+                        "value": "[parameters('subnetAddressPrefixVirtualMachine')]"
+                    },
+                    "subnetAddressPrefixProfiseeAks": {
+                        "value": "[parameters('subnetAddressPrefixProfiseeAks')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "virtual_machine_nsg",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "dependsOn": [
+                "vnet"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlVirtualMachineNsg')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/networkSecurityGroups'), parameters('breezeTagValues')['Microsoft.Network/networkSecurityGroups'], json('{}')) ]"
+                    },
+                    "virtualMachineNSGName": {
+                        "value": "[variables('virtualMachineNSGName')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "public_ip_virtual_machine",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlPublicIPVirtualMachine')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/publicIPAddresses'), parameters('breezeTagValues')['Microsoft.Network/publicIPAddresses'], json('{}')) ]"
+                    },
+                    "virtualMachineName": {
+                        "value": "[variables('virtualMachineName')]"
+                    },
+                    "publicIPNameVirtualMachine": {
+                        "value": "[variables('publicIPNameVirtualMachine')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "public_ip_profisee_aks_load_balancer",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlPublicIPProfiseeAksLoadBalancer')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/publicIPAddresses'), parameters('breezeTagValues')['Microsoft.Network/publicIPAddresses'], json('{}')) ]"
+                    },
+                    "publicIPNameProfiseeAksLoadBalancer": {
+                        "value": "[variables('publicIPNameProfiseeAksLoadBalancer')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "public_ip_profisee_aks_nginx",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlPublicIPProfiseeAksNginx')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/publicIPAddresses'), parameters('breezeTagValues')['Microsoft.Network/publicIPAddresses'], json('{}')) ]"
+                    },
+                    "publicIPNameProfiseeAksNginx": {
+                        "value": "[variables('publicIPNameProfiseeAksNginx')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "virtual_machine_nic",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "dependsOn": [
+                "virtual_machine_nsg",
+                "public_ip_virtual_machine"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlVirtualMachineNIC')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Network/networkInterfaces'), parameters('breezeTagValues')['Microsoft.Network/networkInterfaces'], json('{}')) ]"
+                    },
+                    "virtualMachineVnetName": {
+                        "value": "[variables('virtualNetworkName')]"
+                    },
+                    "virtualMachineVnetSubnetName": {
+                        "value": "[variables('subnetNameVirtualMachine')]"
+                    },
+                    "virtualMachineNsgName": {
+                        "value": "[variables('virtualMachineNSGName')]"
+                    },
+                    "publicIPNameVirtualMachine": {
+                        "value": "[variables('publicIPNameVirtualMachine')]"
+                    },
+                    "virtualMachineNicName": {
+                        "value": "[variables('virtualMachineNICName')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "virtual_machine",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "dependsOn": [
+                "virtual_machine_nic"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlVirtualMachine')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Compute/virtualMachines'), parameters('breezeTagValues')['Microsoft.Compute/virtualMachines'], json('{}')) ]"
+                    },
+                    "virtualMachineNicName": {
+                        "value": "[variables('virtualMachineNicName')]"
+                    },
+                    "virtualMachineName": {
+                        "value": "[variables('virtualMachineName')]"
+                    },
+                    "virtualMachineDiskName": {
+                        "value": "[variables('virtualMachineDiskName')]"
+                    },
+                    "virtualMachineUsername": {
+                        "value": "[parameters('breezeDeployerVirtualMachineUsername')]"
+                    },
+                    "virtualMachinePassword": {
+                        "value": "[parameters('breezeDeployerVirtualMachinePassword')]"
+                    },
+                    "virtualMachineSize": {
+                        "value": "[variables('virtualMachineSize')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "profisee_sql",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlProfiseeSql')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Compute/virtualMachines'), parameters('breezeTagValues')['Microsoft.Compute/virtualMachines'], json('{}')) ]"
+                    },
+                    "profiseeSqlServerName": {
+                        "value": "[parameters('profiseeSqlServerName')]"
+                    },
+                    "profiseeSqlUsername": {
+                        "value": "[parameters('profiseeSqlUsername')]"
+                    },
+                    "profiseeSqlPassword": {
+                        "value": "[parameters('profiseeSqlPassword')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "profisee_aks",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "dependsOn": [
+                "vnet",
+                "public_ip_profisee_aks_load_balancer",
+                "public_ip_profisee_aks_nginx"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlProfiseeAks')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Compute/virtualMachines'), parameters('breezeTagValues')['Microsoft.Compute/virtualMachines'], json('{}')) ]"
+                    },
+                    "profiseeAksClusterName": {
+                        "value": "[parameters('profiseeAksClusterName')]"
+                    },
+                    "virtualNetworkName": {
+                        "value": "[variables('virtualNetworkName')]"
+                    },
+                    "subnetNameProfiseeAks": {
+                        "value": "[variables('subnetNameProfiseeAKS')]"
+                    },
+                    "profiseeAksDnsPrefix": {
+                        "value": "[parameters('profiseeAksDnsPrefix')]"
+                    },
+                    "profiseeAksServiceCidr": {
+                        "value": "[parameters('profiseeAksServiceCidr')]"
+                    },
+                    "profiseeAksDnsServiceIP": {
+                        "value": "[parameters('profiseeAksDnsServiceIP')]"
+                    },
+                    "profiseeAksWindowsUsername": {
+                        "value": "[parameters('profiseeAksWindowsUsername')]"
+                    },
+                    "profiseeAksWindowsPassword": {
+                        "value": "[parameters('profiseeAksWindowsPassword')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "virtual_machine_role_assignment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "dependsOn": [
+                "virtual_machine",
+                "profisee_aks"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlVirtualMachineRoleAssignment')]"
+                },
+                "parameters": {
+                    "virtualMachineName": {
+                        "value": "[variables('virtualMachineName')]"
+                    },
+                    "aksManagedResourceGroupName": {
+                        "value": "[concat('mrg-', parameters('profiseeAksClusterName'))]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "virtual_machine_extension",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2022-09-01",
+            "dependsOn": [
+                "virtual_machine",
+                "storage_account"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrlVirtualMachineExtension')]"
+                },
+                "parameters": {
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "breezeTagValues": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Compute/virtualMachines/extensions'), parameters('breezeTagValues')['Microsoft.Compute/virtualMachines/extensions'], json('{}')) ]"
+                    },
+                    "breezeTagValuesSynapseWorkspace": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Synapse/workspaces'), base64(string(parameters('breezeTagValues')['Microsoft.Synapse/workspaces'])), base64(string(json('{}')))) ]"
+                    },
+                    "breezeTagValuesSynapseDedicatedPool": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Synapse/workspaces/sqlPools'), base64(string(parameters('breezeTagValues')['Microsoft.Synapse/workspaces/sqlPools'])), base64(string(json('{}')))) ]"
+                    },
+                    "breezeTagValuesPurviewAccount": {
+                        "value": "[ if(contains(parameters('breezeTagValues'), 'Microsoft.Purview/accounts'), base64(string(parameters('breezeTagValues')['Microsoft.Purview/accounts'])), base64(string(json('{}')))) ]"
+                    },
+                    "purviewAccountName": {
+                        "value": "[parameters('breezePurviewAccountName')]"
+                    },
+                    "virtualMachineName": {
+                        "value": "[variables('virtualMachineName')]"
+                    },
+                    "breezeSynapseStorageAccountName": {
+                        "value": "[parameters('breezeSynapseStorageAccountName')]"
+                    },
+                    "synapseWorkspaceName": {
+                        "value": "[parameters('breezeSynapseWorkspaceName')]"
+                    },
+                    "synapseWorkspaceUsername": {
+                        "value": "[parameters('breezeSynapseAdminUsername')]"
+                    },
+                    "synapseWorkspacePassword": {
+                        "value": "[parameters('breezeSynapseAdminPassword')]"
+                    },
+                    "breezeSynapseSqlPoolDedicatedSku": {
+                        "value": "[parameters('breezeSynapseSqlPoolDedicatedSku')]"
+                    },
+                    "breezeSynapseAdministratorUserGuid": {
+                        "value": "[parameters('breezeSynapseAdministratorUserGuid')]"
+                    },
+                    "pathVirtualMachineScriptBash": {
+                        "value": "[variables('pathVirtualMachineScriptBash')]"
+                    },
+                    "pathVirtualMachineScriptPowerShell": {
+                        "value": "[variables('pathVirtualMachineScriptPowerShell')]"
+                    },
+                    "path01BreezeSqlScript": {
+                        "value": "[variables('path01BreezeSqlScript')]"
+                    },
+                    "path02DatasetADLSParquet": {
+                        "value": "[variables('path02DatasetADLSParquet')]"
+                    },
+                    "path02DatasetBreeze": {
+                        "value": "[variables('path02DatasetBreeze')]"
+                    },
+                    "path03AdlsDataCuration": {
+                        "value": "[variables('path03AdlsDataCuration')]"
+                    },
+                    "path04p00MasterPipeline": {
+                        "value": "[variables('path04p00MasterPipeline')]"
+                    },
+                    "path04p10LoadSourceDataToAdls": {
+                        "value": "[variables('path04p10LoadSourceDataToAdls')]"
+                    },
+                    "path04p20AdlsDataCuration": {
+                        "value": "[variables('path04p20AdlsDataCuration')]"
+                    },
+                    "path04p30ProcessStageToDW": {
+                        "value": "[variables('path04p30ProcessStageToDW')]"
+                    },
+                    "path04p31ExecuteRequiredSPs": {
+                        "value": "[variables('path04p31ExecuteRequiredSPs')]"
+                    },
+                    "path04p32ExecuteProcsForOneExecOrder": {
+                        "value": "[variables('path04p32ExecuteProcsForOneExecOrder')]"
+                    },
+                    "path04p40ArchiveDataToADLS": {
+                        "value": "[variables('path04p40ArchiveDataToADLS')]"
+                    },
+                    "path04p99PauseResumeSQLPool": {
+                        "value": "[variables('path04p99PauseResumeSQLPool')]"
+                    }
+                }
+            }
+        }
+    ]
+}

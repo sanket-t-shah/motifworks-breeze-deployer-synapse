@@ -1,0 +1,216 @@
+{
+    "name": "p30_ProcessStageToDW",
+    "properties": {
+        "description": "This Pipeline aims to load all data for selected tables from Staging Tables to Data Warehouse.",
+        "activities": [
+            {
+                "name": "Load Dimension Required",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Set Batch ID",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@or(equals(pipeline().parameters.LoadType, 'all'), equals(pipeline().parameters.LoadType, 'dimension'))",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute Load Dimensions",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "p31_ExecuteRequiredSPs",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "ParentBatchId": {
+                                        "value": "@variables('BatchId')",
+                                        "type": "Expression"
+                                    },
+                                    "SourceSystem": {
+                                        "value": "@pipeline().parameters.SourceSystem",
+                                        "type": "Expression"
+                                    },
+                                    "LoadType": "dimension",
+                                    "ProcList": {
+                                        "value": "@pipeline().parameters.ProcList",
+                                        "type": "Expression"
+                                    },
+                                    "RunType": {
+                                        "value": "@pipeline().parameters.RunType",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Load Lookup Required",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Load Dimension Required",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@or(equals(pipeline().parameters.LoadType, 'all'), equals(pipeline().parameters.LoadType, 'lookup'))",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute Load Lookups",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "p31_ExecuteRequiredSPs",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "ParentBatchId": {
+                                        "value": "@variables('BatchId')",
+                                        "type": "Expression"
+                                    },
+                                    "SourceSystem": {
+                                        "value": "@pipeline().parameters.SourceSystem",
+                                        "type": "Expression"
+                                    },
+                                    "LoadType": "lookup",
+                                    "ProcList": {
+                                        "value": "@pipeline().parameters.ProcList",
+                                        "type": "Expression"
+                                    },
+                                    "RunType": {
+                                        "value": "@pipeline().parameters.RunType",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Load Fact Required",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Load Lookup Required",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@or(equals(pipeline().parameters.LoadType, 'all'), equals(pipeline().parameters.LoadType, 'fact'))",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute Load Facts",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "p31_ExecuteRequiredSPs",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "ParentBatchId": {
+                                        "value": "@variables('BatchId')",
+                                        "type": "Expression"
+                                    },
+                                    "SourceSystem": {
+                                        "value": "@pipeline().parameters.SourceSystem",
+                                        "type": "Expression"
+                                    },
+                                    "LoadType": "fact",
+                                    "ProcList": {
+                                        "value": "@pipeline().parameters.ProcList",
+                                        "type": "Expression"
+                                    },
+                                    "RunType": {
+                                        "value": "@pipeline().parameters.RunType",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Set Batch ID",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "BatchId",
+                    "value": {
+                        "value": "@pipeline().parameters.ParentBatchId",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "ParentBatchId": {
+                "type": "string",
+                "defaultValue": "0"
+            },
+            "SourceSystem": {
+                "type": "string",
+                "defaultValue": "netsuite"
+            },
+            "LoadType": {
+                "type": "string",
+                "defaultValue": "lookup"
+            },
+            "ProcList": {
+                "type": "string",
+                "defaultValue": "all"
+            },
+            "RunType": {
+                "type": "string",
+                "defaultValue": "new"
+            }
+        },
+        "variables": {
+            "BatchId": {
+                "type": "String"
+            },
+            "BatchRunStatus": {
+                "type": "String",
+                "defaultValue": "0"
+            }
+        },
+        "folder": {
+            "name": "03-dw-processing"
+        },
+        "annotations": []
+    },
+    "type": "Microsoft.Synapse/workspaces/pipelines"
+}

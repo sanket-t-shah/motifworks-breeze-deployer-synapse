@@ -1,0 +1,295 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+        "config": {
+            "isWizard": true,
+            "basics": {}
+        },
+        "basics": [
+            {
+                "name": "warningStepGlobalOptions1",
+                "type": "Microsoft.Common.InfoBox",
+                "visible": "true",
+                "options": {
+                    "icon": "Warning",
+                    "text": "Do ensure that you select location that has all target requested services available."
+                }
+            },
+            {
+                "name": "infoStepGlobalOptions1",
+                "type": "Microsoft.Common.InfoBox",
+                "visible": "true",
+                "options": {
+                    "icon": "Info",
+                    "text": "You need to get your Use Object ID from Active Directory associated with this Azure Account. Click anywhere in this box to learn how to do that.",
+                    "uri": "https://stmwbreezeassets.z20.web.core.windows.net/index.html"
+                }
+            },
+            {
+                "name": "breezeTagValues",
+                "type": "Microsoft.Common.TagsByResource",
+                "toolTip": "Tags that should be applied to selected Resources.",
+                "resources": [
+                    "Microsoft.Storage/storageAccounts",
+                    "Microsoft.Synapse/workspaces",
+                    "Microsoft.Synapse/workspaces/sqlPools",
+                    "Microsoft.Network/virtualNetworks",
+                    "Microsoft.Network/networkSecurityGroups",
+                    "Microsoft.Network/networkInterfaces",
+                    "Microsoft.Network/publicIPAddresses",
+                    "Microsoft.Compute/virtualMachines",
+                    "Microsoft.Compute/virtualMachines/extensions",
+                    "Microsoft.Purview/accounts"
+                ]
+            }
+        ],
+        "steps": [
+            {
+                "name": "StepBreezeDeployer",
+                "label": "Deployment Engine VM",
+                "elements": [
+                    {
+                        "name": "breezeDeployerVnetAddressPrefix",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "VNET Address Space",
+                        "toolTip": "BREEZE Deployer VNET Address Space.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^([0-9]{1,3}\\.){3}[0-9]{1,3}($|/(16|24))$",
+                            "validationMessage": "Please enter valid CIDR Range."
+                        }
+                    },
+                    {
+                        "name": "breezeDeployerVirtualMachineUsername",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "VM Username",
+                        "toolTip": "BREEZE Deployer VM Username.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-zA-Z0-9]{6,12}$",
+                            "validationMessage": "Please enter valid username."
+                        }
+                    },
+                    {
+                        "name": "breezeDeployerVirtualMachinePassword",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                            "password": "VM Password",
+                            "confirmPassword": "Confirm Password"
+                        },
+                        "toolTip": "BREEZE Deployer VM Password.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[#$^+=!*()@%&]).{12,}$",
+                            "validationMessage": "Password should have: (1) At least one upper case English letter, (2) At least one lower case English letter, (3) At least one digit, (4) At least one special character from #?!@$%^&*-, (5) Minimum eight in length."
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "StepBreeze",
+                "label": "Framework Deployment",
+                "elements": [
+                    {
+                        "name": "sectionStorageAccount",
+                        "type": "Microsoft.Common.Section",
+                        "label": "Storage Account",
+                        "elements": [
+                            {
+                                "name": "breezeSynapseStorageAccountName",
+                                "type": "Microsoft.Storage.StorageAccountSelector",
+                                "label": "Storage Account",
+                                "toolTip": "Preferably create new Storage Account for linking it as ADLS with Synapse Workspace.",
+                                "defaultValue": {
+                                    "name": "stmwbreezedev",
+                                    "type": "Standard_LRS"
+                                },
+                                "options": {
+                                    "hideExisting": true
+                                },
+                                "visible": true
+                            }
+                        ]
+                    },
+                    {
+                        "name": "sectionSynapse",
+                        "type": "Microsoft.Common.Section",
+                        "label": "Synapse Instance",
+                        "elements": [
+                            {
+                                "name": "breezeSynapseWorkspaceName",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "Workspace Name",
+                                "toolTip": "Enter Synapse Workspace Name that you wish to use with BREEZE.",
+                                "constraints": {
+                                    "required": true,
+                                    "regex": "^(?!-ondemand)[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]{1,50}$",
+                                    "validationMessage": "Value can include only alphanumeric and hyphen characters."
+                                }
+                            },
+                            {
+                                "name": "breezeSynapseSqlPoolDedicatedSku",
+                                "type": "Microsoft.Common.OptionsGroup",
+                                "label": "Dedicated Pool SKU",
+                                "toolTip": "SKU for Synapse Dedicated Pool.",
+                                "defaultValue": "DW100c",
+                                "constraints": {
+                                    "required": true,
+                                    "allowedValues": [
+                                        {
+                                            "label": "DW100c",
+                                            "value": "DW100c"
+                                        },
+                                        {
+                                            "label": "DW200c",
+                                            "value": "DW200c"
+                                        },
+                                        {
+                                            "label": "DW300c",
+                                            "value": "DW300c"
+                                        },
+                                        {
+                                            "label": "DW400c",
+                                            "value": "DW400c"
+                                        },
+                                        {
+                                            "label": "DW500c",
+                                            "value": "DW500c"
+                                        },
+                                        {
+                                            "label": "DW1000c",
+                                            "value": "DW1000c"
+                                        },
+                                        {
+                                            "label": "DW1500c",
+                                            "value": "DW1500c"
+                                        },
+                                        {
+                                            "label": "DW2000c",
+                                            "value": "DW2000c"
+                                        },
+                                        {
+                                            "label": "DW2500c",
+                                            "value": "DW2500c"
+                                        },
+                                        {
+                                            "label": "DW3000c",
+                                            "value": "DW3000c"
+                                        },
+                                        {
+                                            "label": "DW5000c",
+                                            "value": "DW5000c"
+                                        },
+                                        {
+                                            "label": "DW6000c",
+                                            "value": "DW6000c"
+                                        },
+                                        {
+                                            "label": "DW7500c",
+                                            "value": "DW7500c"
+                                        },
+                                        {
+                                            "label": "DW10000c",
+                                            "value": "DW10000c"
+                                        },
+                                        {
+                                            "label": "DW15000c",
+                                            "value": "DW15000c"
+                                        },
+                                        {
+                                            "label": "DW30000c",
+                                            "value": "DW30000c"
+                                        }
+                                    ]
+                                },
+                                "visible": true
+                            },
+                            {
+                                "name": "breezeSynapseAdminUsername",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "Admin Username",
+                                "toolTip": "BREEZE Admin Username for Synapse Instance.",
+                                "constraints": {
+                                    "required": true,
+                                    "regex": "^(?!sa|public|sysadmin|securityadmin|serveradmin|setupadmin|processadmin|diskadmin|dbcreator|bulkadmin)([a-zA-Z][a-zA-Z0-9]{2,9})$",
+                                    "validationMessage": "Value can include only alphanumeric characters and should not be from reserved user names of SQL Server / Synapse Dedicated Pool."
+                                }
+                            },
+                            {
+                                "name": "breezeSynapseAdminPassword",
+                                "type": "Microsoft.Common.PasswordBox",
+                                "label": {
+                                    "password": "Admin Password",
+                                    "confirmPassword": "Confirm Password"
+                                },
+                                "toolTip": "BREEZE Admin Password for Synapse Instance.",
+                                "constraints": {
+                                    "required": true,
+                                    "regex": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[#$^+=!*()@%&]).{12,}$",
+                                    "validationMessage": "Password should have: (1) At least one upper case English letter, (2) At least one lower case English letter, (3) At least one digit, (4) At least one special character from #?!@$%^&*-, (5) Minimum eight in length."
+                                }
+                            },
+                            {
+                                "name": "breezeSynapseAdministratorUserGuid",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "Admin User Azure AD GUID",
+                                "toolTip": "GUID for User from current Azure AD Users who will be Synapse Instance Administrator.",
+                                "constraints": {
+                                    "required": true,
+                                    "regex": "^[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?$",
+                                    "validationMessage": "Value should be a valid GUID."
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "sectionPurview",
+                        "type": "Microsoft.Common.Section",
+                        "label": "Purview Account",
+                        "elements": [
+                            {
+                                "name": "breezePurviewAccountName",
+                                "type": "Microsoft.Common.TextBox",
+                                "label": "Purview Account Name",
+                                "toolTip": "Enter Purview Account Name that you wish to use with BREEZE.",
+                                "constraints": {
+                                    "required": true,
+                                    "regex": "^[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]{1,50}$",
+                                    "validationMessage": "Value can include only alphanumeric and hyphen characters."
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "outputs": {
+            "location": "[location()]",
+            "breezeTagValues": "[basics('breezeTagValues').breezeTagValues]",
+            "breezeDeployerVnetAddressPrefix": "[steps('StepBreezeDeployer').breezeDeployerVnetAddressPrefix]",
+            "breezeDeployerVirtualMachineUsername": "[steps('StepBreezeDeployer').breezeDeployerVirtualMachineUsername]",
+            "breezeDeployerVirtualMachinePassword": "[steps('StepBreezeDeployer').breezeDeployerVirtualMachinePassword]",
+            "breezeSynapseStorageAccountName": "[steps('StepBreeze').sectionStorageAccount.breezeSynapseStorageAccountName.name]",
+            "breezePurviewAccountName": "[steps('StepBreeze').sectionPurview.breezePurviewAccountName]",
+            "breezeSynapseWorkspaceName": "[steps('StepBreeze').sectionSynapse.breezeSynapseWorkspaceName]",
+            "breezeSynapseSqlPoolDedicatedSku": "[steps('StepBreeze').sectionSynapse.breezeSynapseSqlPoolDedicatedSku]",
+            "breezeSynapseAdminUsername": "[steps('StepBreeze').sectionSynapse.breezeSynapseAdminUsername]",
+            "breezeSynapseAdminPassword": "[steps('StepBreeze').sectionSynapse.breezeSynapseAdminPassword]",
+            "breezeSynapseAdministratorUserGuid": "[steps('StepBreeze').sectionSynapse.breezeSynapseAdministratorUserGuid]"
+        },
+        "resourceTypes": [
+            "Microsoft.Storage/storageAccounts",
+            "Microsoft.Synapse/workspaces",
+            "Microsoft.Synapse/workspaces/sqlPools",
+            "Microsoft.Network/virtualNetworks",
+            "Microsoft.Network/networkSecurityGroups",
+            "Microsoft.Network/publicIPAddresses",
+            "Microsoft.Network/networkInterfaces",
+            "Microsoft.Compute/virtualMachines",
+            "Microsoft.Compute/virtualMachines/extensions",
+            "Microsoft.Purview/accounts"
+        ]
+    }
+}

@@ -1,0 +1,62 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "breezeTagValues": {
+            "type": "object"
+        },
+        "virtualNetworkName": {
+            "type": "string"
+        },
+        "virtualNetworkAddressPrefix": {
+            "type": "string"
+        },
+        "subnetNameVirtualMachine": {
+            "type": "string"
+        },
+        "subnetNameProfiseeAks": {
+            "type": "string"
+        },
+        "subnetAddressPrefixVirtualMachine": {
+            "type": "string"
+        },
+        "subnetAddressPrefixProfiseeAks": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2022-07-01",
+            "name": "[parameters('virtualNetworkName')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('virtualNetworkAddressPrefix')]"
+                    ]
+                },
+                "enableDdosProtection": false,
+                "enableVmProtection": false,
+                "subnets": [
+                    {
+                        "name": "[parameters('subnetNameVirtualMachine')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetAddressPrefixVirtualMachine')]"
+                        }
+                    },
+                    {
+                        "name": "[parameters('subnetNameProfiseeAks')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('subnetAddressPrefixProfiseeAks')]"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

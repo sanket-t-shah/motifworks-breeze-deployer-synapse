@@ -1,0 +1,84 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "breezeTagValues": {
+            "type": "object"
+        },
+        "breezeSynapseStorageAccountName": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "breezeSynapseStorageAccountBlobService": "[format('{0}/default', parameters('breezeSynapseStorageAccountName'))]",
+        "breezeSynapseStorageAccountBlobContainer": "[format('{0}/default/breeze', parameters('breezeSynapseStorageAccountName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2022-09-01",
+            "name": "[parameters('breezeSynapseStorageAccountName')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot",
+                "isHnsEnabled": true,
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "enabled": true
+                        },
+                        "blob": {
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices",
+            "apiVersion": "2022-09-01",
+            "name": "[variables('breezeSynapseStorageAccountBlobService')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('breezeSynapseStorageAccountName'))]"
+            ],
+            "properties": {
+                "deleteRetentionPolicy": {
+                    "enabled": false
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2022-09-01",
+            "name": "[variables('breezeSynapseStorageAccountBlobContainer')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', split(variables('breezeSynapseStorageAccountBlobService'), '/')[0], split(variables('breezeSynapseStorageAccountBlobService'), '/')[1])]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+            "apiVersion": "2022-09-01",
+            "name": "[concat(parameters('breezeSynapseStorageAccountName'), '/default/profisee')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('breezeSynapseStorageAccountName'))]"
+            ]
+        }
+    ]
+}

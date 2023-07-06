@@ -1,0 +1,129 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "_artifactsLocation": {
+            "value": "https://stmwbreezeassets.blob.core.windows.net/03-breeze-purview-profisee-offer/"
+        },
+        "location": {
+            "value": "eastus"
+        },
+        "breezeTagValues": {
+            "value": {
+                "Microsoft.Synapse/workspaces/sqlPools": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Compute/virtualMachines/extensions": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Network/networkInterfaces": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Network/networkSecurityGroups": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Network/publicIPAddresses": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Storage/storageAccounts": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Synapse/workspaces": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Compute/virtualMachines": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Network/virtualNetworks": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                },
+                "Microsoft.Purview/accounts": {
+                    "Generator": "Motifworks BREEZE Data Framework",
+                    "Project": "BREEZE",
+                    "Deployed By": "Sanket Tarun Shah"
+                }
+            }
+        },
+        "breezeDeployerVnetAddressPrefix": {
+            "value": "10.0.0.0/16"
+        },
+        "subnetAddressPrefixVirtualMachine": {
+            "value": "10.0.1.0/24"
+        },
+        "subnetAddressPrefixProfiseeAks": {
+            "value": "10.0.2.0/24"
+        },
+        "breezeDeployerVirtualMachineUsername": {
+            "value": "deployer"
+        },
+        "breezeDeployerVirtualMachinePassword": {
+            "value": "Smoothie@2022"
+        },
+        "breezeSynapseStorageAccountName": {
+            "value": "stmwbreezedev"
+        },
+        "breezeSynapseWorkspaceName": {
+            "value": "syn-breeze-dev"
+        },
+        "breezeSynapseSqlPoolDedicatedSku": {
+            "value": "DW100c"
+        },
+        "breezeSynapseAdminUsername": {
+            "value": "breeze"
+        },
+        "breezeSynapseAdminPassword": {
+            "value": "Smoothie@2023"
+        },
+        "breezeSynapseAdministratorUserGuid": {
+            "value": "c1ebf919-77fd-4f2b-8ff6-490945f3eed5"
+        },
+        "breezePurviewAccountName": {
+            "value": "pview-breeze-dev"
+        },
+        "profiseeAksClusterName": {
+            "value": "aks-breeze-profisee-dev"
+        },
+        "profiseeAksDnsPrefix": {
+            "value": "aks-breeze-profisee-dev"
+        },
+        "profiseeAksServiceCidr": {
+            "value": "172.16.0.0/24"
+        },
+        "profiseeAksDnsServiceIP": {
+            "value": "172.16.0.10"
+        },
+        "profiseeAksWindowsUsername": {
+            "value": "breeze"
+        },
+        "profiseeAksWindowsPassword": {
+            "value": "SanketShah@19850320"
+        },
+        "profiseeSqlServerName": {
+            "value": "sql-breeze-profisee-dev"
+        },
+        "profiseeSqlUsername": {
+            "value": "breeze"
+        },
+        "profiseeSqlPassword": {
+            "value": "Smoothie@2023"
+        }
+    }
+}

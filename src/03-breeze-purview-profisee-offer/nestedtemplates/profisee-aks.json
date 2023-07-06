@@ -1,0 +1,117 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "breezeTagValues": {
+            "type": "object"
+        },
+        "profiseeAksClusterName": {
+            "type": "string"
+        },
+        "virtualNetworkName": {
+            "type": "string"
+        },
+        "subnetNameProfiseeAks": {
+            "type": "string"
+        },
+        "profiseeAksDnsPrefix": {
+            "type": "string",
+            "defaultValue": "aks-breeze-profisee-dev",
+            "metadata": {
+                "description": "Prefix for Hostname."
+            }
+        },
+        "profiseeAksServiceCidr": {
+            "type": "string",
+            "defaultValue": "172.16.0.0/24",
+            "metadata": {
+                "description": "Should NOT be overlapping with VNET / Subnet Address Space."
+            }
+        },
+        "profiseeAksDnsServiceIP": {
+            "type": "string",
+            "defaultValue": "172.16.0.0/24",
+            "metadata": {
+                "description": "Should be a value from Service CIDR mentioned in previous parameter."
+            }
+        },
+        "profiseeAksWindowsUsername": {
+            "type": "string",
+            "defaultValue": "breeze",
+            "metadata": {
+                "description": "Username For Windows NodePool."
+            }
+        },
+        "profiseeAksWindowsPassword": {
+            "type": "securestring",
+            "defaultValue": "Smoothie@2023",
+            "metadata": {
+                "description": "Password For Windows NodePool."
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ContainerService/managedClusters",
+            "apiVersion": "2023-05-02-preview",
+            "name": "[parameters('profiseeAksClusterName')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "sku": {
+                "name": "Base",
+                "tier": "Free"
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "agentPoolProfiles": [
+                    {
+                        "count": 1,
+                        "enableNodePublicIP": false,
+                        "maxPods": 30,
+                        "mode": "System",
+                        "name": "nplinux1",
+                        "orchestratorVersion": "1.24.10",
+                        "osDiskSizeGB": 100,
+                        "osType": "Linux",
+                        "type": "VirtualMachineScaleSets",
+                        "vmSize": "Standard_D4as_v5",
+                        "vnetSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), parameters('subnetNameProfiseeAks'))]"
+                    },
+                    {
+                        "count": 1,
+                        "enableNodePublicIP": false,
+                        "maxPods": 30,
+                        "mode": "User",
+                        "name": "npwin1",
+                        "orchestratorVersion": "1.24.10",
+                        "osDiskSizeGB": 100,
+                        "osType": "Windows",
+                        "type": "VirtualMachineScaleSets",
+                        "vmSize": "Standard_D8as_v5",
+                        "vnetSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), parameters('subnetNameProfiseeAks'))]"
+                    }
+                ],
+                "dnsPrefix": "[parameters('profiseeAksDnsPrefix')]",
+                "enableRBAC": true,
+                "kubernetesVersion": "1.24.10",
+                "networkProfile": {
+                    "serviceCidr": "[parameters('profiseeAksServiceCidr')]",
+                    "dnsServiceIP": "[parameters('profiseeAksDnsServiceIP')]",
+                    "loadBalancerSku": "Standard",
+                    "networkPlugin": "azure",
+                    "outboundType": "loadBalancer"
+                },
+                "nodeResourceGroup": "[concat('mrg-', parameters('profiseeAksClusterName'))]",
+                "windowsProfile": {
+                    "adminUsername": "[parameters('profiseeAksWindowsUsername')]",
+                    "adminPassword": "[parameters('profiseeAksWindowsPassword')]"
+                }
+            }
+        }
+    ]
+}

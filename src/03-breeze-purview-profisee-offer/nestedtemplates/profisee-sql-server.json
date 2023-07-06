@@ -1,0 +1,80 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "breezeTagValues": {
+            "type": "object"
+        },
+        "profiseeSqlServerName": {
+            "type": "string"
+        },
+        "profiseeSqlUsername": {
+            "type": "string"
+        },
+        "profiseeSqlPassword": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Sql/servers",
+            "apiVersion": "2022-08-01-preview",
+            "name": "[parameters('profiseeSqlServerName')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "administratorLogin": "[parameters('profiseeSqlUsername')]",
+                "administratorLoginPassword": "[parameters('profiseeSqlPassword')]",
+                "publicNetworkAccess": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Sql/servers/firewallRules",
+            "apiVersion": "2022-08-01-preview",
+            "name": "[concat(parameters('profiseeSqlServerName'), '/AllowAllWindowsAzureIps')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('profiseeSqlServerName'))]"
+            ],
+            "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+            }
+        },
+        {
+            "type": "Microsoft.Sql/servers/firewallRules",
+            "apiVersion": "2022-08-01-preview",
+            "name": "[concat(parameters('profiseeSqlServerName'), '/AllowAllIPs')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('profiseeSqlServerName'))]"
+            ],
+            "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "255.255.255.255"
+            }
+        },
+        {
+            "type": "Microsoft.Sql/servers/databases",
+            "apiVersion": "2022-08-01-preview",
+            "name": "[concat(parameters('profiseeSqlServerName'), '/Profisee')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('breezeTagValues')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('profiseeSqlServerName'))]"
+            ],
+            "sku": {
+                "name": "S2"
+            },
+            "properties": {
+                "createMode": "Default"
+            }
+        }
+    ]
+}

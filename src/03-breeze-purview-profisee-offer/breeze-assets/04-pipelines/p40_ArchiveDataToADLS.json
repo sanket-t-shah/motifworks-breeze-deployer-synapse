@@ -1,0 +1,638 @@
+{
+    "name": "p40_ArchiveDataToADLS",
+    "properties": {
+        "description": "Generic Pipeline to (1) fetch the list of source tables, (2) query the source data and (3) load it in ADLS. The tables to be loaded can be restricted by SourceDBName as well as specific list of tables by providing ADFTbleListIds.",
+        "activities": [
+            {
+                "name": "Get Table List To Archive",
+                "description": "Lookup activity to get all the rows from ADFTableList for the given Source System, SourceDB and TableList.",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Set Current Date UTC",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[breeze].[usp_Get_ADFTableList]",
+                        "storedProcedureParameters": {
+                            "ProcessStep": {
+                                "type": "String",
+                                "value": "source2adls"
+                            },
+                            "RunType": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.RunType",
+                                    "type": "Expression"
+                                }
+                            },
+                            "SourceDB": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.SourceDBName",
+                                    "type": "Expression"
+                                }
+                            },
+                            "SourceSystem": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.SourceSystem",
+                                    "type": "Expression"
+                                }
+                            },
+                            "SourceTables": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.TableList",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "ds_breeze",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "For Each Table Row",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Get Table List To Archive",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Get Table List To Archive').output.value",
+                        "type": "Expression"
+                    },
+                    "isSequential": false,
+                    "batchCount": 20,
+                    "activities": [
+                        {
+                            "name": "Log Table Archive Start",
+                            "type": "Lookup",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureSqlSource",
+                                    "sqlReaderStoredProcedureName": "[breeze].[usp_ADFProcess_OnBegin]",
+                                    "storedProcedureParameters": {
+                                        "BatchName": {
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@{pipeline().Pipeline}",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "Description": {
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@{concat('Archive Load-', item().SrcObjectName)}",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "DWBatchId": {
+                                            "type": "Int32",
+                                            "value": {
+                                                "value": "@int(variables('BatchId'))",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "operator": {
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@{pipeline().DataFactory}",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "ProcessDate": {
+                                            "type": "DateTime",
+                                            "value": {
+                                                "value": "@utcnow()",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "StartTime": {
+                                            "type": "DateTime",
+                                            "value": {
+                                                "value": "@utcnow()",
+                                                "type": "Expression"
+                                            }
+                                        },
+                                        "BatchStart": {
+                                            "type": "Datetime",
+                                            "value": null
+                                        }
+                                    },
+                                    "queryTimeout": "02:00:00",
+                                    "partitionOption": "None"
+                                },
+                                "dataset": {
+                                    "referenceName": "ds_breeze",
+                                    "type": "DatasetReference"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Copy Stage To Archive",
+                            "type": "Copy",
+                            "dependsOn": [
+                                {
+                                    "activity": "Log Table Archive Start",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "ParquetSource",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSReadSettings",
+                                        "recursive": true,
+                                        "enablePartitionDiscovery": false
+                                    },
+                                    "formatSettings": {
+                                        "type": "ParquetReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "ParquetSink",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSWriteSettings"
+                                    },
+                                    "formatSettings": {
+                                        "type": "ParquetWriteSettings"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "parallelCopies": 4,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": true,
+                                        "treatBooleanAsNumber": false
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "ds_adls_parquet",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "Container": {
+                                            "value": "@item().DestDbOrContainer",
+                                            "type": "Expression"
+                                        },
+                                        "Directory": {
+                                            "value": "@concat(item().SystemName,'/Stage')",
+                                            "type": "Expression"
+                                        },
+                                        "FileName": {
+                                            "value": "@concat(item().DestObjectName,'.parquet')",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "ds_adls_parquet",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "Container": {
+                                            "value": "@item().DestDbOrContainer",
+                                            "type": "Expression"
+                                        },
+                                        "Directory": {
+                                            "value": "@concat(item().SystemName,'/Archive')",
+                                            "type": "Expression"
+                                        },
+                                        "FileName": {
+                                            "value": "@concat(item().DestObjectName,'.parquet')",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Update Config Table On Success",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Copy Stage To Archive",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_AdfTableList_UpdateRunStatus]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoadRunDate": {
+                                        "value": null,
+                                        "type": "DateTime"
+                                    },
+                                    "AdlsLoadStatus": {
+                                        "value": null,
+                                        "type": "String"
+                                    },
+                                    "SourceDBName": {
+                                        "value": {
+                                            "value": "@item().SrcDbOrContainer",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "SourceTableName": {
+                                        "value": {
+                                            "value": "@item().SrcObjectName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "StagingLoadStatus": {
+                                        "value": {
+                                            "value": "@string('Passed')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@item().SystemName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "StagingLoadRunDate": {
+                                        "value": {
+                                            "value": "@variables('CurrentDate')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Datetime"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Audit ADLS Load Success",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Update Config Table On Success",
+                                    "dependencyConditions": [
+                                        "Completed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_ADFProcess_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "ErrorMessage": {
+                                        "value": {
+                                            "value": "@activity('Copy Stage To Archive').output.errors",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "ETLBatchID": {
+                                        "value": {
+                                            "value": "@activity('Log Table Archive Start').output.firstRow.ETLBatchID",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "InsertCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "SourceCount": {
+                                        "value": {
+                                            "value": "@activity('Copy Stage To Archive').output.rowsRead",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "StageCount": {
+                                        "value": {
+                                            "value": "@activity('Copy Stage To Archive').output.rowsCopied",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "status": {
+                                        "value": "1",
+                                        "type": "Int32"
+                                    },
+                                    "TargetCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "UnchangedCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "UpdateCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "BatchEnd": {
+                                        "value": {
+                                            "value": "@variables('BatchEnd')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Datetime"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Update Config Table On Failed",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Copy Stage To Archive",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_AdfTableList_UpdateRunStatus]",
+                                "storedProcedureParameters": {
+                                    "AdlsLoadRunDate": {
+                                        "value": null,
+                                        "type": "DateTime"
+                                    },
+                                    "AdlsLoadStatus": {
+                                        "value": null,
+                                        "type": "String"
+                                    },
+                                    "SourceDBName": {
+                                        "value": {
+                                            "value": "@item().SourceDBName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "SourceTableName": {
+                                        "value": {
+                                            "value": "@item().SrcObjectName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "DWBatchId": {
+                                        "value": {
+                                            "value": "@variables('BatchId')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "StagingLoadStatus": {
+                                        "value": {
+                                            "value": "@string('Failed')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "SystemName": {
+                                        "value": {
+                                            "value": "@item().SystemName",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "StagingLoadRunDate": {
+                                        "value": {
+                                            "value": "@variables('CurrentDate')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Datetime"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "name": "Audit ADLS Load Failed",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Update Config Table On Failed",
+                                    "dependencyConditions": [
+                                        "Completed"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[breeze].[usp_ADFProcess_OnEnd]",
+                                "storedProcedureParameters": {
+                                    "ErrorMessage": {
+                                        "value": {
+                                            "value": "@activity('Copy Stage To Archive').output.errors",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    },
+                                    "ETLBatchID": {
+                                        "value": {
+                                            "value": "@activity('Log Table Archive Start').output.firstRow.ETLBatchID",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "InsertCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "SourceCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "StageCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "status": {
+                                        "value": "2",
+                                        "type": "Int32"
+                                    },
+                                    "TargetCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "UnchangedCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "UpdateCount": {
+                                        "value": null,
+                                        "type": "Int32"
+                                    },
+                                    "BatchEnd": {
+                                        "value": {
+                                            "value": "@variables('BatchEnd')",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Datetime"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "{{DEFAULT_LINKED_SERVICE_NAME_SYNAPSE}}",
+                                "type": "LinkedServiceReference"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Set Current Date UTC",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "CurrentDate",
+                    "value": {
+                        "value": "@utcnow()",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "ParentBatchId": {
+                "type": "string",
+                "defaultValue": "0"
+            },
+            "SourceSystem": {
+                "type": "string",
+                "defaultValue": "breeze"
+            },
+            "SourceDBName": {
+                "type": "string",
+                "defaultValue": "all"
+            },
+            "TableList": {
+                "type": "string",
+                "defaultValue": "all"
+            },
+            "RunType": {
+                "type": "string",
+                "defaultValue": "new"
+            }
+        },
+        "variables": {
+            "CurrentDate": {
+                "type": "String"
+            },
+            "BatchStart": {
+                "type": "String"
+            },
+            "BatchEnd": {
+                "type": "String"
+            },
+            "BatchId": {
+                "type": "String"
+            }
+        },
+        "folder": {
+            "name": "04-data-archive"
+        },
+        "annotations": []
+    },
+    "type": "Microsoft.Synapse/workspaces/pipelines"
+}
